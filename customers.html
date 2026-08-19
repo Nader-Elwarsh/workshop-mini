@@ -1,13 +1,57 @@
 <!doctype html>
-<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>العملاء</title><link rel="stylesheet" href="../assets/style.css"></head>
-<body><main class="page"><a href="../index.html">← الرئيسية</a><h1>العملاء</h1>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>العملاء - نظام الورشة المصغر</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="page">
+<a class="back" href="index.html">← الرئيسية</a>
+<h1>العملاء</h1>
+
 <form id="customerForm" class="form">
-<input id="customerName" required placeholder="اسم العميل">
-<input id="customerPhone" required placeholder="رقم التليفون" inputmode="tel">
-<select id="area" required><option value="">اختر المنطقة</option><option>مطاي</option><option>بني مزار</option></select>
-<div id="villageWrap"><select id="village"><option value="">اختر القرية</option><option>مطاي البلد</option><option>أبو عزيز</option><option>بردنوها</option><option>منبال</option></select></div>
-<input id="address" required placeholder="العنوان التفصيلي">
-<button>حفظ العميل</button></form>
-<section><h2>العملاء</h2><div id="customerList"></div></section></main>
-<script src="../assets/app.js"></script></body></html>
+  <label>اسم العميل
+    <input id="customerName" required autocomplete="name">
+  </label>
+
+  <label>رقم التليفون
+    <input id="customerPhone" required inputmode="tel" autocomplete="tel">
+  </label>
+
+  <label>المنطقة
+    <select id="area" required>
+      <option value="">اختر المنطقة</option>
+      <option value="مطاي">مطاي</option>
+      <option value="بني مزار">بني مزار</option>
+    </select>
+  </label>
+
+  <div id="villageWrap" class="hidden">
+    <label>القرية
+      <select id="village">
+        <option value="">اختر القرية</option>
+        <option value="مطاي البلد">مطاي البلد</option>
+        <option value="أبو عزيز">أبو عزيز</option>
+        <option value="بردنوها">بردنوها</option>
+        <option value="منبال">منبال</option>
+      </select>
+    </label>
+  </div>
+
+  <label>العنوان التفصيلي
+    <input id="address" required>
+  </label>
+
+  <button type="submit">حفظ العميل</button>
+</form>
+
+<section>
+  <h2>قائمة العملاء</h2>
+  <div id="customerList"></div>
+</section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
