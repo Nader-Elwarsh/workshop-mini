@@ -1,88 +1,36 @@
-const CUSTOMER_KEY = "workshop_mini_customers";
-
-function getCustomers() {
-  try {
-    return JSON.parse(localStorage.getItem(CUSTOMER_KEY) || "[]");
-  } catch {
-    return [];
-  }
+const K={customers:"wm_customers",devices:"wm_devices",requests:"wm_requests",parts:"wm_parts"};
+const read=k=>{try{return JSON.parse(localStorage.getItem(k)||"[]")}catch{return[]}};
+const write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const id=()=>crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2);
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+const qs=new URLSearchParams(location.search);
+const by=(arr,id)=>arr.find(x=>x.id===id);
+const fmtDate=v=>v?new Date(v).toLocaleString("ar-EG"):"—";
+function customers(){return read(K.customers)} function devices(){return read(K.devices)} function requests(){return read(K.requests)} function parts(){return read(K.parts)}
+function customerName(id){return by(customers(),id)?.name||"عميل غير معروف"} function deviceName(id){let d=by(devices(),id);return d?`${d.type} - ${d.brand}${d.model?" - "+d.model:""}`:"جهاز غير معروف"}
+function fillCustomerSelect(el,selected=""){if(!el)return;el.innerHTML='<option value="">اختر العميل</option>'+customers().map(c=>`<option value="${c.id}" ${c.id===selected?"selected":""}>${esc(c.name)} - ${esc(c.phone)}</option>`).join("")}
+function fillDeviceSelect(el,customerId="",selected=""){if(!el)return;el.innerHTML='<option value="">اختر الجهاز</option>'+devices().filter(d=>!customerId||d.customerId===customerId).map(d=>`<option value="${d.id}" ${d.id===selected?"selected":""}>${esc(d.type)} - ${esc(d.brand)}${d.model?" - "+esc(d.model):""}</option>`).join("")}
+function renderDashboard(){let s=document.getElementById("dashboardStats");if(s)s.innerHTML=[["العملاء",customers().length],["الأجهزة",devices().length],["طلبات الصيانة",requests().length],["قطع الغيار",parts().length]].map(x=>`<div class="stat"><strong>${x[1]}</strong><span>${x[0]}</span></div>`).join("")}
+function renderCustomers(){
+ const list=document.getElementById("customerList");if(!list)return;let q=(document.getElementById("customerSearch")?.value||"").trim().toLowerCase();
+ let a=customers().filter(c=>(c.name+" "+c.phone).toLowerCase().includes(q));
+ list.innerHTML=a.length?a.map(c=>{let dc=devices().filter(d=>d.customerId===c.id).length,rc=requests().filter(r=>r.customerId===c.id).length;return `<div class="item"><div class="item-head"><a href="customer.html?id=${c.id}"><strong>${esc(c.name)}</strong></a><span class="badge">${dc} أجهزة • ${rc} طلبات</span></div><div>📞 ${esc(c.phone)}</div><div>📍 ${esc(c.area)}${c.village?" - "+esc(c.village):""} - ${esc(c.address)}</div><div class="actions"><a class="btn" href="customer.html?id=${c.id}">فتح ملف 360°</a><button class="secondary" onclick="editCustomer('${c.id}')">تعديل</button></div></div>`}).join(""):'<div class="empty">لا يوجد عملاء.</div>';
 }
+function editCustomer(i){let c=by(customers(),i);if(!c)return;customerId.value=c.id;customerName.value=c.name;customerPhone.value=c.phone;area.value=c.area;village.value=c.village||"";address.value=c.address;villageWrap.classList.toggle("hidden",c.area!=="مطاي");cancelEdit.classList.remove("hidden");scrollTo(0,0)}
+function initCustomers(){let areaE=document.getElementById("area");if(!areaE)return;areaE.onchange=()=>{villageWrap.classList.toggle("hidden",areaE.value!=="مطاي");village.required=areaE.value==="مطاي";if(areaE.value!=="مطاي")village.value=""};document.getElementById("customerForm").onsubmit=e=>{e.preventDefault();let a=customers(),i=customerId.value,c={id:i||id(),name:customerName.value.trim(),phone:customerPhone.value.trim(),area:area.value,village:area.value==="مطاي"?village.value:"",address:address.value.trim()};if(i){let n=a.findIndex(x=>x.id===i);a[n]=c}else a.push(c);write(K.customers,a);location.href=`customer.html?id=${c.id}`};document.getElementById("customerSearch").oninput=renderCustomers;document.getElementById("cancelEdit").onclick=()=>location.reload();renderCustomers()}
+function customerProfile(){let box=document.getElementById("customerProfile");if(!box)return;let c=by(customers(),qs.get("id"));if(!c){box.innerHTML="<div class='empty'>العميل غير موجود.</div>";return}let ds=devices().filter(d=>d.customerId===c.id),rs=requests().filter(r=>r.customerId===c.id);box.innerHTML=`<div class="profile"><div class="page-head"><h1>${esc(c.name)}</h1><a class="btn small" href="customers.html">العملاء</a></div><div class="profile-grid"><div class="kv"><b>التليفون</b>${esc(c.phone)}</div><div class="kv"><b>المنطقة</b>${esc(c.area)}</div><div class="kv"><b>القرية</b>${esc(c.village)||"—"}</div><div class="kv"><b>العنوان</b>${esc(c.address)}</div><div class="kv"><b>عدد الأجهزة</b>${ds.length}</div><div class="kv"><b>عدد الطلبات</b>${rs.length}</div></div></div><h2 class="section-title">الأجهزة</h2>${ds.length?ds.map(d=>`<div class="item"><a href="device.html?id=${d.id}"><strong>${esc(d.type)} - ${esc(d.brand)}${d.model?" - "+esc(d.model):""}</strong></a><div>${esc(d.description)||"بدون وصف"}</div><a class="btn small" href="request.html?customer=${c.id}&device=${d.id}">طلب صيانة للجهاز</a></div>`).join(""):"<div class='empty'>لا توجد أجهزة مسجلة.</div>"}<div class="actions"><a class="btn" href="devices.html?customer=${c.id}">+ إضافة جهاز</a><a class="btn" href="requests.html?customer=${c.id}">+ طلب صيانة</a></div><h2 class="section-title">طلبات الصيانة</h2>${rs.length?rs.map(r=>`<div class="item"><a href="request.html?id=${r.id}"><strong>${esc(r.requestNo)}</strong></a><span class="badge">${esc(r.status)}</span><div>${esc(deviceName(r.deviceId))}</div><div>${esc(r.fault)}</div></div>`).join(""):"<div class='empty'>لا توجد طلبات صيانة.</div>"}`}
 
-function saveCustomers(customers) {
-  localStorage.setItem(CUSTOMER_KEY, JSON.stringify(customers));
-}
+function renderDevices(){let list=document.getElementById("deviceList");if(!list)return;let q=(document.getElementById("deviceSearch")?.value||"").toLowerCase();let a=devices().filter(d=>(customerName(d.customerId)+" "+d.type+" "+d.brand+" "+(d.model||"")).toLowerCase().includes(q));list.innerHTML=a.length?a.map(d=>`<div class="item"><div class="item-head"><a href="device.html?id=${d.id}"><strong>${esc(d.type)} - ${esc(d.brand)}</strong></a><span class="badge">${esc(customerName(d.customerId))}</span></div><div>${esc(d.model)||"بدون موديل"} — ${esc(d.description)||"بدون وصف"}</div><div class="actions"><a class="btn" href="device.html?id=${d.id}">فتح ملف 360°</a><button class="secondary" onclick="editDevice('${d.id}')">تعديل</button></div></div>`).join(""):'<div class="empty">لا توجد أجهزة.</div>'}
+function initDevices(){let sc=qs.get("customer");fillCustomerSelect(deviceCustomer,sc);fillDeviceSelect(document.getElementById("requestDevice"));deviceCustomer.onchange=()=>{};document.getElementById("deviceForm").onsubmit=e=>{e.preventDefault();let a=devices(),i=deviceId.value,d={id:i||id(),customerId:deviceCustomer.value,type:deviceType.value,brand:deviceBrand.value.trim(),model:deviceModel.value.trim(),description:deviceDescription.value.trim()};if(i)a[a.findIndex(x=>x.id===i)]=d;else a.push(d);write(K.devices,a);location.href=`device.html?id=${d.id}`};document.getElementById("deviceSearch").oninput=renderDevices;document.getElementById("cancelDeviceEdit").onclick=()=>location.reload();renderDevices()}
+function editDevice(i){let d=by(devices(),i);if(!d)return;deviceId.value=d.id;deviceCustomer.value=d.customerId;deviceType.value=d.type;deviceBrand.value=d.brand;deviceModel.value=d.model||"";deviceDescription.value=d.description||"";cancelDeviceEdit.classList.remove("hidden");scrollTo(0,0)}
+function deviceProfile(){let box=document.getElementById("deviceProfile");if(!box)return;let d=by(devices(),qs.get("id"));if(!d){box.innerHTML="<div class='empty'>الجهاز غير موجود.</div>";return}let rs=requests().filter(r=>r.deviceId===d.id);box.innerHTML=`<div class="profile"><div class="page-head"><h1>${esc(d.type)} - ${esc(d.brand)}</h1><a class="btn small" href="customer.html?id=${d.customerId}">ملف العميل</a></div><div class="profile-grid"><div class="kv"><b>العميل</b>${esc(customerName(d.customerId))}</div><div class="kv"><b>النوع</b>${esc(d.type)}</div><div class="kv"><b>الماركة</b>${esc(d.brand)}</div><div class="kv"><b>الموديل</b>${esc(d.model)||"—"}</div><div class="kv"><b>الوصف</b>${esc(d.description)||"—"}</div><div class="kv"><b>طلبات الصيانة</b>${rs.length}</div></div></div><div class="actions"><a class="btn" href="requests.html?customer=${d.customerId}&device=${d.id}">+ طلب صيانة</a></div><h2 class="section-title">سجل الصيانة</h2>${rs.length?rs.map(r=>`<div class="item"><a href="request.html?id=${r.id}"><strong>${esc(r.requestNo)}</strong></a><span class="badge">${esc(r.status)}</span><div>${esc(r.fault)}</div><div>الضمان: ${r.warrantyEnd||"لا يوجد"}</div></div>`).join(""):"<div class='empty'>لا يوجد سجل صيانة حتى الآن.</div>"}`}
+function initRequests(){let customerId0=qs.get("customer"),deviceId0=qs.get("device"),edit=qs.get("id");fillCustomerSelect(requestCustomer,customerId0||"");fillDeviceSelect(requestDevice,customerId0||"",deviceId0||"");requestCustomer.onchange=()=>fillDeviceSelect(requestDevice,requestCustomer.value,"");if(edit){let r=by(requests(),edit);if(r){requestId.value=r.id;fillCustomerSelect(requestCustomer,r.customerId);fillDeviceSelect(requestDevice,r.customerId,r.deviceId);fault.value=r.fault;priority.value=r.priority;visitDate.value=r.visitDate||"";requestStatus.value=r.status;inspection.value=r.inspection||"";total.value=r.total||0;paid.value=r.paid||0;warrantyEnd.value=r.warrantyEnd||""}}document.getElementById("requestForm").onsubmit=e=>{e.preventDefault();let a=requests(),i=requestId.value,r={id:i||id(),requestNo:i?(by(a,i)?.requestNo):"REQ-"+new Date().getFullYear()+"-"+String(a.length+1).padStart(4,"0"),customerId:requestCustomer.value,deviceId:requestDevice.value,fault:fault.value.trim(),priority:priority.value,visitDate:visitDate.value,status:requestStatus.value,inspection:inspection.value.trim(),total:Number(total.value||0),paid:Number(paid.value||0),warrantyEnd:warrantyEnd.value,createdAt:i?(by(a,i)?.createdAt||new Date().toISOString()):new Date().toISOString()};if(i)a[a.findIndex(x=>x.id===i)]=r;else a.push(r);write(K.requests,a);location.href=`request.html?id=${r.id}`};document.getElementById("cancelRequestEdit").onclick=()=>location.href="requests.html";renderRequests()}
+function renderRequests(){let list=document.getElementById("requestList");if(!list)return;let q=(document.getElementById("requestSearch")?.value||"").toLowerCase(),sf=document.getElementById("statusFilter")?.value||"";let a=requests().filter(r=>(r.requestNo+" "+customerName(r.customerId)+" "+r.fault).toLowerCase().includes(q)&&(sf===""||r.status===sf));list.innerHTML=a.length?a.map(r=>`<div class="item"><div class="item-head"><a href="request.html?id=${r.id}"><strong>${esc(r.requestNo)}</strong></a><span class="badge">${esc(r.status)}</span></div><div>العميل: ${esc(customerName(r.customerId))}</div><div>الجهاز: ${esc(deviceName(r.deviceId))}</div><div>${esc(r.fault)}</div><div>الضمان: ${r.warrantyEnd||"لا يوجد"} ${r.warrantyEnd&&new Date(r.warrantyEnd)<new Date()?"<span class='danger'>منتهي</span>":""}</div></div>`).join(""):'<div class="empty">لا توجد طلبات.</div>';document.getElementById("requestSearch").oninput=renderRequests;document.getElementById("statusFilter").onchange=renderRequests}
+function requestProfile(){let box=document.getElementById("requestProfile");if(!box)return;let r=by(requests(),qs.get("id"));if(!r){box.innerHTML="<div class='empty'>الطلب غير موجود.</div>";return}let remain=Math.max(0,r.total-r.paid);box.innerHTML=`<div class="profile"><div class="page-head"><h1>${esc(r.requestNo)}</h1><a class="btn small" href="requests.html?customer=${r.customerId}&device=${r.deviceId}&id=${r.id}">تعديل</a></div><div class="profile-grid"><div class="kv"><b>العميل</b><a href="customer.html?id=${r.customerId}">${esc(customerName(r.customerId))}</a></div><div class="kv"><b>الجهاز</b><a href="device.html?id=${r.deviceId}">${esc(deviceName(r.deviceId))}</a></div><div class="kv"><b>الحالة</b>${esc(r.status)}</div><div class="kv"><b>الأولوية</b>${esc(r.priority)}</div><div class="kv"><b>موعد الزيارة</b>${fmtDate(r.visitDate)}</div><div class="kv"><b>التكلفة</b>${r.total} جنيه</div><div class="kv"><b>المدفوع</b>${r.paid} جنيه</div><div class="kv"><b>المتبقي</b>${remain} جنيه</div><div class="kv"><b>نهاية الضمان</b>${r.warrantyEnd||"لا يوجد"}</div><div class="kv"><b>أنشئ في</b>${fmtDate(r.createdAt)}</div></div><h2>وصف العطل</h2><div class="item">${esc(r.fault)}</div><h2>نتيجة الكشف / الأعمال</h2><div class="item">${esc(r.inspection)||"—"}</div><p class="hint">الكشف أو التذكير المبدئي ليس فاتورة قانونية.</p></div>`}
 
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  }[char]));
-}
+function renderParts(){let list=document.getElementById("partList");if(!list)return;let q=(document.getElementById("partSearch")?.value||"").toLowerCase();let a=parts().filter(p=>(p.name+" "+(p.code||"")).toLowerCase().includes(q));list.innerHTML=a.length?a.map(p=>`<div class="item ${Number(p.qty)<=Number(p.min||0)?"low":""}"><div class="item-head"><a href="part.html?id=${p.id}"><strong>${esc(p.name)}</strong></a><span class="badge">${p.qty} قطعة</span></div><div>الكود: ${esc(p.code)||"—"} • التصنيف: ${esc(p.category)||"—"}</div><div>شراء: ${p.buy||0} • استخدام: ${p.use||0}</div><div class="actions"><a class="btn" href="part.html?id=${p.id}">فتح ملف 360°</a><button class="secondary" onclick="editPart('${p.id}')">تعديل</button></div></div>`).join(""):'<div class="empty">لا توجد قطع غيار.</div>'}
+function initParts(){document.getElementById("partForm").onsubmit=e=>{e.preventDefault();let a=parts(),i=partId.value,p={id:i||id(),name:partName.value.trim(),code:partCode.value.trim(),category:partCategory.value.trim(),qty:Number(partQty.value||0),min:Number(partMin.value||0),buy:Number(partBuy.value||0),use:Number(partUse.value||0)};if(i)a[a.findIndex(x=>x.id===i)]=p;else a.push(p);write(K.parts,a);location.href=`part.html?id=${p.id}`};document.getElementById("partSearch").oninput=renderParts;document.getElementById("cancelPartEdit").onclick=()=>location.reload();renderParts()}
+function editPart(i){let p=by(parts(),i);if(!p)return;partId.value=p.id;partName.value=p.name;partCode.value=p.code||"";partCategory.value=p.category||"";partQty.value=p.qty;partMin.value=p.min||0;partBuy.value=p.buy||0;partUse.value=p.use||0;cancelPartEdit.classList.remove("hidden");scrollTo(0,0)}
+function partProfile(){let box=document.getElementById("partProfile");if(!box)return;let p=by(parts(),qs.get("id"));if(!p){box.innerHTML="<div class='empty'>القطعة غير موجودة.</div>";return}let low=Number(p.qty)<=Number(p.min||0);box.innerHTML=`<div class="profile"><div class="page-head"><h1>${esc(p.name)}</h1><a class="btn small" href="inventory.html">المخزن</a></div><div class="profile-grid"><div class="kv"><b>الكود</b>${esc(p.code)||"—"}</div><div class="kv"><b>التصنيف</b>${esc(p.category)||"—"}</div><div class="kv"><b>الكمية الحالية</b>${p.qty}</div><div class="kv"><b>الحد الأدنى</b>${p.min||0}</div><div class="kv"><b>سعر الشراء</b>${p.buy||0} جنيه</div><div class="kv"><b>سعر الاستخدام</b>${p.use||0} جنيه</div></div>${low?"<div class='notice'>تنبيه: المخزون عند الحد الأدنى أو أقل.</div>"}<h2 class="section-title">حركات المخزون</h2><div class="empty">سجل الحركات سيُستخدم عند بناء عمليات الدخول والخروج المرتبطة بطلبات الصيانة.</div></div>`}
 
-function renderCustomers() {
-  const list = document.getElementById("customerList");
-  if (!list) return;
-
-  const customers = getCustomers();
-
-  if (!customers.length) {
-    list.innerHTML = '<div class="item">لا يوجد عملاء حتى الآن.</div>';
-    return;
-  }
-
-  list.innerHTML = customers.map(customer => `
-    <div class="item">
-      <strong>${escapeHtml(customer.name)}</strong>
-      <div>📞 ${escapeHtml(customer.phone)}</div>
-      <div>📍 ${escapeHtml(customer.area)}${customer.village ? " - " + escapeHtml(customer.village) : ""} - ${escapeHtml(customer.address)}</div>
-    </div>
-  `).join("");
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  const area = document.getElementById("area");
-  const villageWrap = document.getElementById("villageWrap");
-  const village = document.getElementById("village");
-  const form = document.getElementById("customerForm");
-
-  if (area) {
-    area.addEventListener("change", () => {
-      const isMatay = area.value === "مطاي";
-      villageWrap.classList.toggle("hidden", !isMatay);
-      village.required = isMatay;
-
-      if (!isMatay) {
-        village.value = "";
-      }
-    });
-  }
-
-  if (form) {
-    form.addEventListener("submit", event => {
-      event.preventDefault();
-
-      const customer = {
-        id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()),
-        name: document.getElementById("customerName").value.trim(),
-        phone: document.getElementById("customerPhone").value.trim(),
-        area: area.value,
-        village: area.value === "مطاي" ? village.value : "",
-        address: document.getElementById("address").value.trim()
-      };
-
-      const customers = getCustomers();
-      customers.push(customer);
-      saveCustomers(customers);
-
-      form.reset();
-      villageWrap.classList.add("hidden");
-      village.required = false;
-      renderCustomers();
-    });
-  }
-
-  renderCustomers();
-});
+document.addEventListener("DOMContentLoaded",()=>{renderDashboard();initCustomers();customerProfile();initDevices();deviceProfile();initRequests();requestProfile();initParts();partProfile();});

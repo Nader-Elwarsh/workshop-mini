@@ -1,18 +1,9 @@
-<!doctype html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>الأجهزة - نظام الورشة المصغر</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<main class="page">
-<a class="back" href="index.html">← الرئيسية</a>
-<h1>الأجهزة</h1>
-<div class="notice">كل جهاز سيكون مرتبطًا بعميل مباشرة. لا يوجد رقم مسلسل في هذا النظام.</div>
-<p>هذه الشاشة جاهزة للربط مع العملاء في المرحلة التالية.</p>
-</main>
-<script src="app.js"></script>
-</body>
-</html>
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>الأجهزة</title><link rel="stylesheet" href="style.css"></head><body><main class="page">
+<a class="back" href="index.html">← الرئيسية</a><div class="page-head"><h1>الأجهزة</h1><a class="btn small" href="#deviceForm">+ جهاز جديد</a></div>
+<form id="deviceForm" class="form"><input type="hidden" id="deviceId">
+<label>العميل<select id="deviceCustomer" required></select></label>
+<label>نوع الجهاز<select id="deviceType" required><option value="">اختر النوع</option><option>ثلاجة</option><option>فريزر</option><option>غسالة أوتوماتيك</option><option>غسالة فوق أوتوماتيك</option><option>غسالة نصف أوتوماتيك</option><option>تكييف</option><option>سخان مياه</option><option>كولدير</option><option>سخان غاز</option><option>أخرى</option></select></label>
+<label>الماركة<input id="deviceBrand" required></label><label>الموديل<input id="deviceModel"></label><label>وصف الجهاز<input id="deviceDescription"></label>
+<div class="actions"><button type="submit">حفظ وفتح ملف الجهاز 360°</button><button type="button" class="secondary hidden" id="cancelDeviceEdit">إلغاء التعديل</button></div></form>
+<section><h2>الأجهزة</h2><input id="deviceSearch" placeholder="بحث بالعميل أو النوع أو الماركة"><div id="deviceList"></div></section>
+</main><script src="app.js"></script></body></html>
