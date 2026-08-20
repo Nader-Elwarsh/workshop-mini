@@ -41,3 +41,7 @@ button,input,select,textarea{font-size:inherit}
   .profile-title{font-size:18px;max-width:48vw}
   .page-head h1{font-size:21px}
 }
+
+/* v3.3: scheduling + workshop workflow */
+.schedule-panel,.workshop-track{background:#f7f9fb;border-radius:10px;padding:9px;margin:9px 0}.schedule-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px;font-size:13px}.schedule-head span{color:#687583;font-size:12px}.schedule-table{display:grid;gap:4px}.schedule-row{display:grid;grid-template-columns:90px 55px 1fr;gap:6px;align-items:center;background:#fff;border-radius:7px;padding:6px 8px;font-size:12px}.schedule-header{background:#e9eef3;font-weight:bold;color:#687583}.schedule-row a{font-weight:bold;margin-left:4px}.schedule-empty{font-size:12px;color:#687583;text-align:center}.workshop-track{grid-column:1/-1}.workshop-track h3{margin:0 0 6px;font-size:14px}.workshop-state{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;border-radius:8px;padding:7px 8px;margin-bottom:6px}.workshop-state small{color:#687583}.workshop-actions{display:flex;gap:5px;flex-wrap:wrap}.active-track{background:#17324d;color:#fff}.workshop-pull{margin-top:7px}.workshop-badge{display:inline-block;margin:4px 0}.filters{grid-template-columns:2fr 1fr 1fr}
+@media(max-width:650px){.schedule-row{grid-template-columns:68px 42px 1fr;font-size:11px}.schedule-head{font-size:12px}.workshop-actions .mini-action{flex:1 1 auto}.filters{grid-template-columns:1fr}.workshop-track{padding:7px}.workshop-track h3{font-size:13px}}
