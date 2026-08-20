@@ -2,8 +2,6 @@
 <div class="page-head"><h1>👤 العملاء</h1><button class="primary" onclick="toggle('customerForm')">➕ عميل جديد</button></div>
 <form id="customerForm" class="form hidden"><div class="form-grid">
 <label>اسم العميل<input id="cName" required></label><label>التليفون<input id="cPhone" required inputmode="tel"></label>
-<label>المركز<select id="cCenter" required></select></label><label>القرية<select id="cVillage" required></select></label>
-<label>الشارع / علامة مميزة <small>اختياري</small><input id="cStreet"></label><label>العنوان الأساسي<textarea id="cAddress" required></textarea></label>
-</div><h3>📍 عنوان إضافي <small>اختياري</small></h3><div class="form-grid"><label>المركز<select id="aCenter"></select></label><label>القرية<select id="aVillage"></select></label><label>الشارع / علامة مميزة<input id="aStreet"></label><label>العنوان<input id="aAddress"></label></div>
+</div><h3>📍 العنوان الأساسي</h3><div class="address-note">المركز + القرية هما العنوان الأساسي، والشارع أو العلامة المميزة اختيارية.</div><div class="form-grid"><label>المركز<select id="cCenter" required></select></label><label>القرية<select id="cVillage" required></select></label><label>الشارع / علامة مميزة <small>اختياري</small><input id="cStreet"></label></div><h3>📍 عنوان إضافي <small>اختياري</small></h3><div class="form-grid"><label>المركز<select id="aCenter"></select></label><label>القرية<select id="aVillage"></select></label><label>الشارع / علامة مميزة <small>اختياري</small><input id="aStreet"></label></div>
 <div class="actions"><button class="primary">💾 حفظ وفتح ملف العميل 360°</button><button type="button" class="secondary" onclick="toggle('customerForm')">إلغاء</button></div></form>
 <input id="customerSearch" class="search" placeholder="🔍 بحث بالاسم أو التليفون"><div id="customerList"></div></main><script src="app.js"></script></body></html>
