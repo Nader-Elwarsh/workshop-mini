@@ -70,3 +70,42 @@ function settingsPage(){if(!document.getElementById("centerSettings"))return;let
 function addCenter(){let s=settings(),x=newCenter.value.trim();if(!x||s.centers.includes(x))return;s.centers.push(x);s.villages[x]=[];put(K.s,s);settingsPage()} function renameCenter(x){let n=prompt("الاسم الجديد",x);if(!n||n===x)return;let s=settings(),i=s.centers.indexOf(x);s.centers[i]=n;s.villages[n]=s.villages[x]||[];delete s.villages[x];put(K.s,s);settingsPage()} function deleteCenter(x){if(!confirm("حذف المركز؟"))return;let s=settings();s.centers=s.centers.filter(a=>a!==x);delete s.villages[x];put(K.s,s);settingsPage()}
 function addType(){let s=settings(),x=newType.value.trim();if(!x||s.types[x])return;s.types[x]=[];put(K.s,s);settingsPage()}function renameType(x){let n=prompt("الاسم الجديد",x);if(!n||n===x)return;let s=settings();s.types[n]=s.types[x]||[];delete s.types[x];put(K.s,s);settingsPage()}function deleteType(x){if(!confirm("حذف النوع؟"))return;let s=settings();delete s.types[x];put(K.s,s);settingsPage()}function addBrand(){let s=settings(),x=newBrand.value.trim();if(!x||s.brands.includes(x))return;s.brands.push(x);put(K.s,s);settingsPage()}function deleteBrand(x){let s=settings();s.brands=s.brands.filter(a=>a!==x);put(K.s,s);settingsPage()}function addPartCategory(){let s=settings(),x=newPartCategory.value.trim();if(!x||s.partCats.includes(x))return;s.partCats.push(x);put(K.s,s);settingsPage()}function deletePartCategory(x){let s=settings();s.partCats=s.partCats.filter(a=>a!==x);put(K.s,s);settingsPage()}
 document.addEventListener("DOMContentLoaded",()=>{settings();normalizeOrderNumbers();renderDash();monthReport();document.getElementById("reportMonth")?.addEventListener("change",monthReport);initCustomers();customerProfile();initDevices();deviceProfile();initRequests();requestProfile();initParts();partProfile();settingsPage()})
+
+// Quick-create relations: create the missing entity without leaving the current workflow.
+function setupQuickLocation(prefix){
+  let center=document.getElementById(prefix+'Center'), village=document.getElementById(prefix+'Village');
+  if(!center||!village)return;
+  fillCenters(center); center.onchange=()=>fillVillages(village,center.value); fillVillages(village,center.value);
+}
+function saveQuickCustomer(){
+  let name=document.getElementById('qcName')?.value.trim(),phone=document.getElementById('qcPhone')?.value.trim();
+  if(!name||!phone)return alert('اكتب اسم العميل والتليفون أولاً.');
+  let c={id:id(),name,phone,mainAddress:{center:qcCenter.value,village:qcVillage.value,address:"",street:qcStreet.value.trim()},extraAddress:{},createdAt:new Date().toISOString()};
+  let a=arr(K.c);a.push(c);if(!saveJSONSafe(K.c,a))return;
+  fillCustomer(rCustomer,c.id);fillAddress(rAddress,c.id,'main');
+  toggle('quickCustomerBox');
+  document.getElementById('quickCustomerBox').querySelectorAll('input').forEach(x=>x.value='');
+  fillDevice(rDevice,c.id,'');
+}
+function saveQuickDevice(){
+  let cid=rCustomer.value;if(!cid)return alert('اختر العميل أولاً أو أضفه من الزر بجواره.');
+  let d={id:id(),customerId:cid,addressKey:rAddress.value||'main',type:qdType.value,category:qdCategory.value,brand:qdBrand.value,model:qdModel.value.trim(),desc:qdDesc.value.trim(),photo:"",createdAt:new Date().toISOString()};
+  if(!d.type||!d.category||!d.brand)return alert('اختر نوع الجهاز والتصنيف والماركة.');
+  let a=arr(K.d);a.push(d);if(!saveJSONSafe(K.d,a))return;
+  fillDevice(rDevice,cid,d.id);toggle('quickDeviceBox');
+}
+function saveDeviceCustomer(){
+  let name=dcName.value.trim(),phone=dcPhone.value.trim();if(!name||!phone)return alert('اكتب اسم العميل والتليفون أولاً.');
+  let c={id:id(),name,phone,mainAddress:{center:dcCenter.value,village:dcVillage.value,address:"",street:dcStreet.value.trim()},extraAddress:{},createdAt:new Date().toISOString()};
+  let a=arr(K.c);a.push(c);if(!saveJSONSafe(K.c,a))return;fillCustomer(dCustomer,c.id);fillAddress(dAddress,c.id,'main');toggle('quickDeviceCustomerBox');
+}
+function setupQuickForms(){
+  if(document.getElementById('quickCustomerBox'))setupQuickLocation('qc');
+  if(document.getElementById('quickDeviceCustomerBox'))setupQuickLocation('dc');
+  if(document.getElementById('qdType')){fillTypes(qdType);fillBrands(qdBrand);qdType.onchange=()=>fillCats(qdCategory,qdType.value);fillCats(qdCategory,qdType.value)}
+}
+const _oldInitRequests=initRequests;
+initRequests=function(){_oldInitRequests();setupQuickForms()}
+const _oldInitDevices=initDevices;
+initDevices=function(){_oldInitDevices();setupQuickForms()}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(setupQuickForms,0));
