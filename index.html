@@ -1,1 +1,12 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>نظام الورشة المصغر</title><link rel="stylesheet" href="style.css"></head><body><header><h1>نظام الورشة المصغر</h1><p>أربع وحدات مستقلة ومترابطة بالكامل</p></header><main><section id="stats" class="stats"></section><section id="alerts"></section><div class="grid"><a class="card" href="customers.html"><b>👤 العملاء</b><span>ملفات 360° والعناوين والأجهزة وأوامر الشغل.</span></a><a class="card" href="devices.html"><b>🔧 الأجهزة</b><span>جهاز مرتبط بعميله وعنوانه وسجل صيانته.</span></a><a class="card" href="requests.html"><b>🛠️ أوامر الشغل</b><span>طلب صيانة كامل من البلاغ حتى الإغلاق والضمان.</span></a><a class="card" href="inventory.html"><b>📦 المخزن</b><span>قطع الغيار والحركات والربط بأوامر الشغل.</span></a></div></main><script src="app.js"></script></body></html>
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>الورشة الفنية | النظام المصغر</title><link rel="stylesheet" href="style.css"></head><body>
+<header><div class="brand"><span>🛠️</span><div><h1>الورشة الفنية</h1><p>نظام إدارة الورشة المصغر</p></div></div></header>
+<main>
+<section class="dashboard"><div class="dash-head"><h2>📊 ملخص الورشة</h2><a href="settings.html" class="icon-btn">⚙️ الإعدادات</a></div><div id="dashboard"></div></section>
+<div class="grid">
+<a class="card" href="customers.html"><i>👤</i><b>العملاء</b><span>ملفات 360° والعناوين والأجهزة وأوامر الشغل</span></a>
+<a class="card" href="devices.html"><i>🔧</i><b>الأجهزة</b><span>الأنواع والتصنيفات والماركات وملفات الأجهزة</span></a>
+<a class="card" href="requests.html"><i>🛠️</i><b>أوامر الشغل</b><span>التشغيل والحساب وقطع الغيار والتحصيل والإغلاق</span></a>
+<a class="card" href="inventory.html"><i>📦</i><b>المخزن</b><span>القطع والمواقع والحركات والتكلفة والمكسب</span></a>
+</div>
+<section class="report"><div class="dash-head"><h2>📈 كشف الحساب الشهري</h2><input id="reportMonth" type="month"></div><div id="monthlyReport"></div></section>
+</main><script src="app.js"></script></body></html>
