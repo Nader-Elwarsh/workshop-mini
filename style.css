@@ -7,3 +7,37 @@
 /* v3.1 compact mobile/work-order improvements */
 .request-one-page{padding:12px}.request-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.request-title{font-size:18px!important;max-width:none}.mini-action{padding:6px 9px!important;font-size:11px!important;border-radius:7px!important}.request-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.request-grid .kv{padding:7px 8px;min-height:0;font-size:13px}.request-grid .kv b{font-size:10px;margin-bottom:2px}.request-wide{grid-column:1/-1}.request-account,.request-parts{background:#f7f9fb;border-radius:9px;padding:8px}.request-account h3,.request-parts h3{margin:0 0 5px;font-size:14px}.request-account{grid-column:1}.request-parts{grid-column:2}.compact-money{font-size:11px!important}.compact-money td{padding:4px 6px!important}.compact-money td:last-child{min-width:70px!important}.total-row{font-weight:bold}.compact-part{grid-template-columns:1fr auto auto!important;font-size:12px;margin-top:4px!important;background:#fff;border-radius:7px;padding:5px 6px}.empty-inline{font-size:12px;color:#6b7783;padding:4px 0}.request-part-add{grid-template-columns:minmax(0,1fr) 55px auto!important;margin-top:7px}.request-part-add select,.request-part-add input{padding:7px;font-size:11px}.request-part-add button{white-space:nowrap}.request-one-page .compact-actions{gap:4px}.request-one-page .badge{font-size:10px;padding:3px 7px}.profile-title{font-size:18px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.profile .page-head{gap:6px}.compact-actions .primary,.compact-actions .secondary{padding:7px 9px;font-size:11px}.month-table td{padding:5px 7px}.report .month-table{font-size:12px}.dashboard{padding:9px}.dash-head h2{font-size:17px}.grid{gap:8px}.card{padding:12px}.card i{font-size:21px;margin-bottom:3px}.card b{font-size:16px}.card span{font-size:12px}.item{padding:10px;margin:6px 0}.item-head{gap:5px}.item-head b{font-size:14px}.back{font-size:13px}.page{padding:10px}.page-head h1{font-size:20px;margin:0}.section-actions{gap:4px}.small-btn{padding:6px 8px;font-size:11px}.form{padding:10px}.form-grid{gap:7px}.form-grid label{font-size:12px}.form-grid input,.form-grid select,.form-grid textarea{padding:8px;font-size:12px}.actions{gap:6px}.actions button{padding:8px;font-size:12px}
 @media(max-width:650px){.request-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.request-account,.request-parts{grid-column:1/-1}.request-parts{display:block}.request-part-add{grid-template-columns:minmax(0,1fr) 48px!important}.request-part-add button{grid-column:1/-1;width:100%}.request-top{align-items:flex-start}.request-title{font-size:17px!important}.profile-title{font-size:17px;max-width:43vw}.compact-actions .primary,.compact-actions .secondary{padding:6px 8px;font-size:10px}.request-one-page .kv{font-size:12px}.request-one-page .kv b{font-size:9px}.request-one-page .request-account,.request-one-page .request-parts{padding:7px}.request-one-page h3{font-size:13px}.compact-part{font-size:11px}.report .month-table td{padding:4px 5px}}
+
+/* v3.2: slightly larger, clean mobile typography + payment/parts controls */
+body{font-size:16px;line-height:1.45}
+button,input,select,textarea{font-size:inherit}
+.pay-close-btn{width:100%;margin-top:8px;padding:9px 10px;border:0;border-radius:8px;background:#17324d;color:#fff;font-weight:bold;cursor:pointer;font-family:inherit}
+.request-part-add input{max-width:80px}
+@media(max-width:650px){
+  .request-one-page .kv{font-size:13px}
+  .request-one-page .kv b{font-size:10px}
+  .request-one-page h3{font-size:14px}
+  .compact-part{font-size:12px}
+  .request-part-add select,.request-part-add input{font-size:12px;padding:8px}
+  .mini-action{font-size:11px!important;padding:7px 9px!important}
+  .hint{font-size:12px}
+  .profile-title{font-size:18px;max-width:48vw}
+  .page-head h1{font-size:21px}
+}
+
+/* v3.2: slightly larger, clean typography + payment/parts controls */
+body{font-size:16px;line-height:1.45}
+button,input,select,textarea{font-size:inherit}
+.pay-close-btn{width:100%;margin-top:8px;padding:9px 10px;border:0;border-radius:8px;background:#17324d;color:#fff;font-weight:bold;cursor:pointer;font-family:inherit}
+.request-part-add input{max-width:80px}
+@media(max-width:650px){
+  .request-one-page .kv{font-size:13px}
+  .request-one-page .kv b{font-size:10px}
+  .request-one-page h3{font-size:14px}
+  .compact-part{font-size:12px}
+  .request-part-add select,.request-part-add input{font-size:12px;padding:8px}
+  .mini-action{font-size:11px!important;padding:7px 9px!important}
+  .hint{font-size:12px}
+  .profile-title{font-size:18px;max-width:48vw}
+  .page-head h1{font-size:21px}
+}
