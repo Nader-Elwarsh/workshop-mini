@@ -30,12 +30,12 @@ button{border:0;border-radius:10px;padding:11px 15px;font:inherit;cursor:pointer
 .good{background:#e2f5e8;color:#146c2e}.bad{background:#ffe2e2;color:#a00000}
 .search{display:grid;grid-template-columns:1fr auto;gap:8px}
 .list{display:grid;gap:10px}
-.customer{border:1px solid #e0e5eb;border-radius:13px;padding:14px}
+.customer{position:relative;border:1px solid #e0e5eb;border-radius:13px;padding:14px}
 .customer-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .badge{display:inline-block;padding:5px 9px;border-radius:20px;background:#eef1f5;margin:2px;font-size:12px}
 .green{background:#e3f7e9;color:#146c2e}.orange{background:#fff0d6;color:#8b5b00}.red{background:#ffe2e2;color:#a00000}.bb{background:#e4f0ff;color:#1769aa}
 .mini{font-size:13px;color:#667085;line-height:1.8}
-.customer-actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
+.customer-actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}.twms-360{position:absolute;left:14px;top:14px;padding:8px 11px!important}.customer-head{padding-left:95px}
 .customer-actions button{padding:8px 11px}
 .relations{margin-top:12px;background:#f8fafc;border-radius:10px;padding:10px}
 .rel-row{display:flex;justify-content:space-between;border-bottom:1px solid #e4e8ed;padding:8px 0;gap:10px}
@@ -53,13 +53,6 @@ hr{border:0;border-top:1px solid #e4e8ef;margin:16px 0}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
 .modal.open{display:flex}
 .modal-box{background:#fff;border-radius:16px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:18px}
-
-/* TWMS UI V2: compact customer cards / action row */
-.customer-head h3{font-size:19px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px}
-.customer-actions{display:flex!important;gap:6px!important;margin-top:10px!important;flex-wrap:wrap!important;align-items:center!important;position:static!important}
-.customer-actions button{flex:0 0 auto!important;min-width:0!important;padding:7px 10px!important;font-size:14px!important;position:static!important;transform:none!important;inset:auto!important;float:none!important}
-.customer-actions .danger[disabled]{opacity:.55;cursor:not-allowed}
-@media(max-width:720px){.customer-head h3{font-size:18px;max-width:calc(100vw - 150px)}.customer-actions button{font-size:13px;padding:7px 9px}}
 @media(max-width:720px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.search{grid-template-columns:1fr}.customer-head{display:block}.rel-grid{grid-template-columns:1fr 1fr}}
 
 .registration-toggle{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -98,7 +91,7 @@ hr{border:0;border-top:1px solid #e4e8ef;margin:16px 0}
 .merge-note{font-size:12px;color:#d9e2ff;margin-top:6px}
 </style>
 
-<script src="app-core.js?v=4.7.1"></script><script src="twms-ui.js?v=4.7.1"></script><script>window.TWMS_ACTOR=window.TWMS_ACTOR||{id:"LOCAL-ADMIN",name:"المدير",role:"admin"};window.C=window.WorkshopCore;</script>
+<script src="app-core.js?v=4.7.0-unified"></script><script src="twms-ui.js?v=4.7.0"></script><script>window.TWMS_ACTOR=window.TWMS_ACTOR||{id:"LOCAL-ADMIN",name:"المدير",role:"admin"};window.C=window.WorkshopCore;</script>
 </head>
 <body>
 <header>
@@ -756,13 +749,10 @@ function archiveCustomer(id){
 }
 function deleteCustomer(id){
  try{
-  const c=C.findCustomer(id); if(!c)throw new Error("العميل غير موجود.");
   const linked=customerOperationalCount(id);
   if(linked){show("لا يجوز حذف عميل لديه بيانات تشغيلية؛ استخدم الأرشفة.",true);return}
-  if(C.settings().allowDeleteCustomer!=="yes"){show("حذف العملاء معطل من الإعدادات. فعّله من إعدادات النظام أولًا.",true);return}
-  if(!confirm("حذف العميل «"+customerDisplayName(c)+"» نهائيًا؟\\n\\nلن يُسمح بالحذف إذا كان له أجهزة أو أوامر أو زيارات أو فواتير مرتبطة."))return;
-  if(prompt("للتأكيد النهائي اكتب: حذف")!=="حذف"){show("تم إلغاء الحذف.");return}
-  C.deleteCustomer(id,ACTOR);show("تم حذف العميل نهائيًا.");clearForm();render();
+  if(!confirm("حذف العميل نهائيًا؟ هذا الإجراء لا يستخدم مع السجلات التشغيلية."))return;
+  C.deleteCustomer(id,ACTOR);show("تم حذف العميل.");clearForm();render();
  }catch(e){show(e.message||"تعذر حذف العميل.",true)}
 }
 
@@ -890,22 +880,17 @@ function render(){
   const contacts=Array.isArray(c.contacts)?c.contacts.length:0,
         addresses=Array.isArray(c.addresses)?c.addresses.length:0,
         linked=rq.length+dv.length+vi.length+iv.length,
-        canDelete=linked===0&&!isArchivedCustomer(c),
-        deleteAllowed=C.settings().allowDeleteCustomer==="yes",
+        canDelete=C.settings().allowDeleteCustomer==="yes"&&linked===0&&!isArchivedCustomer(c),
         displayName=customerDisplayName(c),
         archived=isArchivedCustomer(c);
 
   return `<div class="customer">
+   <button type="button" class="blue twms-360" onclick="open360('${esc(id)}')">👁️ 360°</button>
    <div class="customer-head"><div><h3>${esc(displayName)}</h3>
     <div class="mini">🆔 ${esc(id)}<br>📞 ${esc(c.phone||c.mobile||"—")} ${c.phone2?" / "+esc(c.phone2):""}<br>📍 ${esc(c.address||[c.governorate,c.center,c.village,c.street].filter(Boolean).join(" - ")||"—")}</div>
     <div class="chips"><span class="badge bb">🏷️ ${esc(c.customerTier||c.category||"جديد")}</span>${archived?'<span class="badge red">مؤرشف</span>':'<span class="badge green">نشط</span>'}<span class="badge">عناوين ${addresses}</span><span class="badge">تواصل ${contacts}</span></div>
    </div><div><span class="badge bb">طلبات ${rq.length}</span><span class="badge">أجهزة ${dv.length}</span><span class="badge">زيارات ${vi.length}</span><span class="badge">فواتير ${iv.length}</span></div></div>
-   <div class="customer-actions">
-<button class="blue" type="button" onclick="open360('${esc(id)}')">👁️ 360°</button>
-<button class="gray" type="button" onclick="editCustomer('${esc(id)}')">✏️ تعديل</button>
-${archived?"":`<button class="amber" type="button" onclick="archiveCustomer('${esc(id)}')">📦 أرشفة</button>`}
-${canDelete?`<button class="danger" type="button" ${deleteAllowed?"":"disabled"} title="حذف العميل" onclick="deleteCustomer('${esc(id)}')">🗑️ حذف</button>`:""}
-</div>
+   <div class="customer-actions"><button class="gray" onclick="editCustomer('${esc(id)}')">✏️ تعديل</button>${archived?"":`<button class="amber" onclick="archiveCustomer('${esc(id)}')">📦 أرشفة</button>`}<button class="danger" onclick="deleteCustomer('${esc(id)}')">🗑️ حذف</button></div>
   </div>`;
  }).join("");
 }

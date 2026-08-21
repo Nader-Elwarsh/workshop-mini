@@ -17,7 +17,7 @@ button{border:0;border-radius:10px;padding:11px 15px;font:inherit;cursor:pointer
 @media(max-width:700px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.actions{flex-direction:column}.row{display:block}}
 </style>
 
-<script src="app-core.js?v=4.7.1"></script><script src="twms-ui.js?v=4.7.1"></script><script>window.TWMS_ACTOR=window.TWMS_ACTOR||{id:"LOCAL-ADMIN",name:"المدير",role:"admin"};window.C=window.WorkshopCore;</script>
+<script src="app-core.js?v=4.7.0-unified"></script><script src="twms-ui.js?v=4.7.0"></script><script>window.TWMS_ACTOR=window.TWMS_ACTOR||{id:"LOCAL-ADMIN",name:"المدير",role:"admin"};window.C=window.WorkshopCore;</script>
 </head>
 <body>
 <header><h1>⚙️ إعدادات النظام</h1><p>الإعدادات المركزية للورشة الفنية</p></header>
@@ -90,8 +90,6 @@ button{border:0;border-radius:10px;padding:11px 15px;font:inherit;cursor:pointer
 <div><label>مدة الجلسة بالدقائق</label><input id="sessionMinutes" type="number" min="5"></div>
 <div><label>تفعيل سجل المراجعة</label><select id="audit"><option value="on">مفعل</option><option value="off">موقوف</option></select></div>
 <div><label>اللغة</label><select id="language"><option value="ar">العربية</option><option value="en">English</option></select></div>
-<div><label>السماح بحذف عميل بلا بيانات تشغيلية</label><select id="allowDeleteCustomer"><option value="no">لا</option><option value="yes">نعم</option></select></div>
-<div><label>السماح بحذف جهاز بلا بيانات تشغيلية</label><select id="allowDeleteDevice"><option value="no">لا</option><option value="yes">نعم</option></select></div>
 </div>
 </div>
 
@@ -101,12 +99,12 @@ button{border:0;border-radius:10px;padding:11px 15px;font:inherit;cursor:pointer
 <button class="primary" id="save">💾 حفظ الإعدادات</button>
 <button class="blue" id="export">📤 تصدير نسخة احتياطية</button>
 <button class="gray" id="importBtn">📥 استيراد نسخة احتياطية</button>
-<button class="danger" id="deleteFreeCustomers">🗑️ حذف العملاء بلا بيانات تشغيلية</button>
-<button class="danger" id="clearAllData">⚠️ مسح كل بيانات النظام</button>
-<button class="gray" id="reset">↩️ إعادة إعدادات النظام</button>
+<button class="danger" id="reset">⚠️ إعادة إعدادات النظام</button>
+<button class="danger" id="deleteAll">🗑️ حذف جميع بيانات النظام</button>
 </div>
 <input id="file" type="file" accept=".json" style="display:none">
-<div class="info">الحذف الفردي من صفحات العملاء والأجهزة، ولا يُسمح بحذف سجل مرتبط ببيانات تشغيلية. زر «مسح كل بيانات النظام» إجراء طوارئ مستقل ويأخذ نسخة احتياطية قبل المسح.</div>
+<div class="info">النسخة الاحتياطية تحفظ بيانات localStorage الخاصة بالنظام في ملف JSON. زر إعادة الإعدادات لا يحذف البيانات التشغيلية.</div>
+<div class="warning" style="background:#fff0f0;border:1px solid #e6a5a5;border-radius:10px;padding:12px;margin-top:10px">⚠️ حذف جميع البيانات يمسح العملاء والأجهزة وأوامر الشغل والفواتير والمخزون وباقي البيانات التشغيلية، مع الإبقاء على إعدادات النظام.</div>
 </div>
 
 <div class="card">
@@ -127,7 +125,7 @@ invoicePrefix:"INV-",currency:"جنيه",tax:0,pointValue:1,vipPoints:1000,warra
 notifications:"on",visitReminder:"24",stockAlert:"on",urgentAlert:"on",
 partsOnly:"yes",voidOutside:"yes",visitFee:0,urgentFee:0,warrantyTerms:"الضمان يغطي قطع الغيار التي تم استبدالها بواسطة الورشة وفق شروط الضمان المعتمدة.",
 defaultWarehouse:"المخزن الرئيسي",stockThreshold:"on",negativeStock:"no",defaultUnit:"قطعة",
-adminName:"مدير النظام",sessionMinutes:60,audit:"on",language:"ar",allowDeleteCustomer:"no",allowDeleteDevice:"no"
+adminName:"مدير النظام",sessionMinutes:60,audit:"on",language:"ar"
 };
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
@@ -150,38 +148,8 @@ $("importBtn").onclick=()=>$("file").click();
 $("file").onchange=async e=>{
  let f=e.target.files[0];if(!f)return;try{let d=JSON.parse(await f.text());let r=window.WorkshopCore.importBackup(d,window.TWMS_ACTOR);fill();notice(r.ok?"تم استيراد النسخة الاحتياطية":"تم الاستيراد مع وجود مشاكل في العلاقات",!r.ok)}catch(err){notice(err.message||"ملف النسخة الاحتياطية غير صالح",true)}e.target.value=""
 };
-
-function downloadBackup(data,prefix){
- let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
- a.href=url;a.download=(prefix||"workshop-backup")+"-"+new Date().toISOString().replace(/[:.]/g,"-")+".json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-$("deleteFreeCustomers").onclick=()=>{
- try{
-  if(get().allowDeleteCustomer!=="yes"){notice("فعّل السماح بحذف العملاء من إعدادات الأمان أولًا.",true);return}
-  const rows=window.WorkshopCore.list(window.WorkshopCore.KEYS.customers);
-  const free=rows.filter(c=>{
-   const id=window.WorkshopCore.idOf(c);
-   return !window.WorkshopCore.customerDevices(id).length&&!window.WorkshopCore.customerRequests(id).length&&!window.WorkshopCore.customerVisits(id).length&&!window.WorkshopCore.customerInvoices(id).length;
-  });
-  if(!free.length){notice("لا يوجد عملاء بلا بيانات تشغيلية للحذف.");return}
-  if(!confirm("سيتم حذف "+free.length+" عميلًا بلا أجهزة أو أوامر أو زيارات أو فواتير. متابعة؟"))return;
-  if(prompt("للتأكيد اكتب: حذف العملاء")!=="حذف العملاء"){notice("تم إلغاء العملية.");return}
-  const backup=window.WorkshopCore.exportBackup(window.TWMS_ACTOR);downloadBackup(backup,"workshop-before-customer-delete");
-  let deleted=0;
-  free.forEach(c=>{try{window.WorkshopCore.deleteCustomer(window.WorkshopCore.idOf(c),window.TWMS_ACTOR);deleted++}catch(e){}});
-  fill();notice("تم حذف "+deleted+" عميلًا غير مرتبط ببيانات تشغيلية.");
- }catch(e){notice(e.message||"تعذر حذف العملاء.",true)}
-};
-$("clearAllData").onclick=()=>{
- try{
-  if(prompt("هذا يمسح كل بيانات النظام. اكتب: حذف الكل")!=="حذف الكل"){notice("تم إلغاء المسح.");return}
-  const backup=window.WorkshopCore.exportBackup(window.TWMS_ACTOR);downloadBackup(backup,"workshop-full-backup-before-clear");
-  if(!confirm("تم تجهيز نسخة احتياطية. هل تريد الآن مسح كل بيانات النظام؟"))return;
-  Object.values(window.WorkshopCore.KEYS).forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});
-  location.reload();
- }catch(e){notice(e.message||"تعذر تنفيذ مسح البيانات.",true)}
-};
 $("reset").onclick=()=>{if(!confirm("إعادة إعدادات النظام للوضع الافتراضي؟"))return;save({...defaults,updatedAt:new Date().toISOString()});fill();notice("تمت إعادة الإعدادات الافتراضية")};
+$("deleteAll").onclick=()=>{if(!confirm("تحذير: سيتم حذف جميع بيانات النظام التشغيلية نهائيًا. هل تريد المتابعة؟"))return;if(!confirm("تأكيد أخير: اكتب موافق بعد الضغط على موافق في الرسالة التالية؟"))return;try{window.WorkshopCore.clearAllOperationalData(window.TWMS_ACTOR);notice("تم حذف جميع البيانات التشغيلية والإبقاء على الإعدادات");}catch(e){notice(e.message||"تعذر الحذف العام",true)}};
 $("save").onclick=saveSettings;fill();
 </script>
 

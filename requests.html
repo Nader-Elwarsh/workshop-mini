@@ -18,23 +18,15 @@ button{border:0;border-radius:10px;padding:11px 15px;font:inherit;cursor:pointer
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.notice{display:none;padding:12px;border-radius:10px;margin-bottom:14px;line-height:1.7}.notice.ok{display:block;background:#e3f7e9;color:#146c2e}.notice.err{display:block;background:#ffe3e1;color:#9b1c16}.notice.warn{display:block;background:#fff0d6;color:#8b5b00}
 .info{background:#f7f9fb;border:1px solid var(--line);padding:12px;border-radius:10px;margin-top:8px;line-height:1.8}
 .filters{display:grid;grid-template-columns:2fr 1fr 1fr;gap:9px}.count{color:var(--muted);margin:10px 0}
-.request{border:1px solid var(--line);border-radius:14px;padding:15px;margin:10px 0;background:#fff}.request h3{margin:0 0 9px}.request p{line-height:1.8;margin:7px 0}.badges{display:flex;gap:6px;flex-wrap:wrap}.badge{display:inline-block;padding:5px 9px;border-radius:18px;background:#eef2f6;font-size:12px}.priority{background:#fff0d6;color:#8b5b00}.status{background:#e8f0ff;color:#164e8b}.done{background:#e3f7e9;color:#146c2e}.dangerBadge{background:#ffe3e1;color:#9b1c16}
+.request{position:relative;border:1px solid var(--line);border-radius:14px;padding:15px;margin:10px 0;background:#fff}.twms-360{position:absolute;left:14px;top:14px;padding:8px 11px!important}.request h3{padding-left:90px}.request h3{margin:0 0 9px}.request p{line-height:1.8;margin:7px 0}.badges{display:flex;gap:6px;flex-wrap:wrap}.badge{display:inline-block;padding:5px 9px;border-radius:18px;background:#eef2f6;font-size:12px}.priority{background:#fff0d6;color:#8b5b00}.status{background:#e8f0ff;color:#164e8b}.done{background:#e3f7e9;color:#146c2e}.dangerBadge{background:#ffe3e1;color:#9b1c16}
 .panel{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}.subgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}th{background:#f7f9fb}
 .hidden{display:none!important}.muted{color:var(--muted);font-size:13px}.required{color:var(--red)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto;z-index:20}.modal.open{display:flex}.modalbox{background:#fff;border-radius:16px;width:min(900px,100%);padding:18px}
 @media(max-width:700px){.grid,.subgrid,.filters{grid-template-columns:1fr}.full{grid-column:auto}.wrap{padding:10px}h1{font-size:24px}}
-
-/* TWMS V2 - تشغيل مختصر في صفحة واحدة */
-.quick-row{display:flex;gap:7px;align-items:center}.quick-row select{flex:1}.quick-row button{flex:0 0 auto;padding:9px 11px;font-size:13px}
-.summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}.summary-strip .stat{background:#f7f9fb;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}.summary-strip b{display:block;font-size:19px}
-.parts-editor{background:#f7f9fb;border:1px solid var(--line);border-radius:12px;padding:11px}.parts-row{display:grid;grid-template-columns:1fr 100px auto;gap:7px;align-items:end}.used-part{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
-.pay-box{background:#eef8f1;border:1px solid #b8dfc4;border-radius:10px;padding:11px}
-.quick-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto;z-index:40}.quick-modal.open{display:flex}.quick-box{background:#fff;border-radius:16px;width:min(650px,100%);padding:18px}
-@media(max-width:700px){.summary-strip{grid-template-columns:repeat(2,1fr)}.parts-row{grid-template-columns:1fr}.quick-row{align-items:stretch}.quick-row button{width:auto}}
 </style>
 
-<script src="app-core.js?v=4.7.1"></script><script src="twms-ui.js?v=4.7.1"></script><script>window.TWMS_ACTOR=window.TWMS_ACTOR||{id:"LOCAL-ADMIN",name:"المدير",role:"admin"};window.C=window.WorkshopCore;</script>
+<script src="app-core.js?v=4.7.0-unified"></script><script src="twms-ui.js?v=4.7.0"></script><script>window.TWMS_ACTOR=window.TWMS_ACTOR||{id:"LOCAL-ADMIN",name:"المدير",role:"admin"};window.C=window.WorkshopCore;</script>
 </head>
 <body>
 <header><div class="wrap">
@@ -45,12 +37,6 @@ table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px so
 <main class="wrap">
 <div id="notice" class="notice"></div>
 
-<div class="summary-strip">
-<div class="stat"><b id="openCount">0</b>أوامر مفتوحة</div>
-<div class="stat"><b id="todayCount">0</b>مواعيد اليوم</div>
-<div class="stat"><b id="scheduledCount">0</b>مواعيد قادمة</div>
-<div class="stat"><b id="partsCount">0</b>قطع مسجلة</div>
-</div>
 <section class="card">
 <h2 id="formTitle">➕ إنشاء أمر شغل</h2>
 <div class="muted">لا يتم تكرار بيانات العميل أو الجهاز؛ يتم اختيار السجلات الأصلية وربط أمر الشغل بها.</div>
@@ -58,11 +44,11 @@ table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px so
 <div class="grid" style="margin-top:14px">
 <div>
 <label>العميل <span class="required">*</span></label>
-<div class="quick-row"><select id="customerId"><option value="">اختر العميل</option></select><button type="button" class="blue" id="quickCustomerBtn">➕ عميل</button></div>
+<select id="customerId"><option value="">اختر العميل</option></select>
 </div>
 <div>
 <label>الجهاز <span class="required">*</span></label>
-<div class="quick-row"><select id="deviceId" disabled><option value="">اختر العميل أولًا</option></select><button type="button" class="blue" id="quickDeviceBtn">➕ جهاز</button></div>
+<select id="deviceId" disabled><option value="">اختر العميل أولًا</option></select>
 </div>
 
 <div class="full" id="customerInfo"></div>
@@ -101,14 +87,6 @@ table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px so
 <label>عنوان الزيارة</label>
 <input id="address" placeholder="يُملأ من بيانات العميل ويمكن مراجعته">
 </div>
-<div>
-<label>مكان التنفيذ</label>
-<select id="executionPlace"><option value="منزل العميل">منزل العميل</option><option value="الورشة">الورشة</option><option value="مكان آخر">مكان آخر</option></select>
-</div>
-<div>
-<label>حالة الورشة</label>
-<select id="workshopStatus"><option value="غير مطلوب">غير مطلوب</option><option value="مطلوب سحب">مطلوب سحب</option><option value="تم السحب للورشة">تم السحب للورشة</option><option value="قيد الإصلاح بالورشة">قيد الإصلاح بالورشة</option><option value="تم الإصلاح">تم الإصلاح</option><option value="تم التسليم">تم التسليم</option></select>
-</div>
 
 <div class="full">
 <label>وصف العطل / طلب العميل <span class="required">*</span></label>
@@ -138,16 +116,8 @@ table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px so
 </div>
 
 <div class="full panel">
-<h3>📦 قطع الغيار المستخدمة</h3>
-<div class="parts-editor">
- <div class="parts-row">
-  <div><label>قطعة الغيار</label><select id="usedPartItem"><option value="">اختر القطعة</option></select></div>
-  <div><label>الكمية</label><input id="usedPartQty" type="number" min="1" step="1" value="1"></div>
-  <button type="button" class="blue" id="confirmUsedPartBtn">➕ تأكيد إضافة قطعة الغيار</button>
- </div>
- <div id="usedPartsList" style="margin-top:10px"></div>
- <div id="partsInfo" class="info">احفظ أمر الشغل أولًا، ثم اختر القطعة والكمية واضغط «تأكيد إضافة قطعة الغيار».</div>
-</div>
+<h3>📦 قطع الغيار المرتبطة</h3>
+<div id="partsInfo" class="info">إدارة حجز/صرف القطع التفصيلية تعتمد على وحدة المخزون. لا يتم خصم المخزون النهائي من هذه الشاشة قبل استيفاء شروط الاعتماد.</div>
 </div>
 
 <div class="full panel">
@@ -189,35 +159,6 @@ table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px so
 <a href="core-test.html"><button class="blue">🧪 اختبار Core</button></a>
 </div>
 </main>
-
-<div class="quick-modal" id="quickCustomerModal">
-<div class="quick-box">
-<h2>➕ تسجيل عميل سريع</h2>
-<div class="grid">
-<div><label>اسم العميل *</label><input id="qcName"></div>
-<div><label>رقم الهاتف *</label><input id="qcPhone" inputmode="tel"></div>
-<div><label>المحافظة</label><input id="qcGov" value="المنيا"></div>
-<div><label>المركز</label><input id="qcCenter" value="مطاي"></div>
-<div><label>القرية</label><input id="qcVillage"></div>
-<div><label>الشارع</label><input id="qcStreet"></div>
-<div class="full"><label>العنوان</label><input id="qcAddress"></div>
-</div>
-<div class="actions"><button class="primary" id="saveQuickCustomer">💾 حفظ وإضافة</button><button class="gray" id="closeQuickCustomer">إلغاء</button></div>
-</div></div>
-
-<div class="quick-modal" id="quickDeviceModal">
-<div class="quick-box">
-<h2>➕ تسجيل جهاز سريع</h2>
-<div class="grid">
-<div><label>النوع *</label><select id="qdType"></select></div>
-<div><label>النوع الفرعي</label><select id="qdSubtype"><option value="">اختياري</option></select></div>
-<div><label>الماركة</label><input id="qdBrand"></div>
-<div><label>موديل</label><input id="qdModel"></div>
-<div><label>رقم الجهاز بالورشة</label><input id="qdWorkshopSerial" placeholder="اختياري — يُولد تلقائيًا"></div>
-<div class="full"><label>ملاحظات</label><textarea id="qdNotes"></textarea></div>
-</div>
-<div class="actions"><button class="primary" id="saveQuickDevice">💾 حفظ وإضافة</button><button class="gray" id="closeQuickDevice">إلغاء</button></div>
-</div></div>
 
 <div class="modal" id="detailsModal">
 <div class="modalbox">
@@ -279,66 +220,13 @@ function initLists(){
  setOptions("status",C.STATUSES);
  setOptions("statusFilter",C.STATUSES,"كل الحالات");
  setOptions("priorityFilter",C.PRIORITIES,"كل الأولويات");
- loadCustomers();loadTechnicians();loadInventoryItems();
- $("priority").value="عادية";$("status").value="جديد";$("executionPlace").value="منزل العميل";$("workshopStatus").value="غير مطلوب";$("usedPartQty").value=1;renderUsedParts();
+ loadCustomers();loadTechnicians();
+ $("priority").value="عادية";$("status").value="جديد";
 }
 function resetForm(){
  editingId=null;$("formTitle").textContent="➕ إنشاء أمر شغل";$("saveBtn").textContent="💾 حفظ أمر الشغل";$("cancelBtn").classList.add("hidden");
- ["customerId","deviceId","type","source","priority","technicianId","scheduledAt","address","executionPlace","workshopStatus","problem","diagnosis","actionsDone","partsRequired","estimatedCost","beforePhotos","technicalNotes","approvalStatus","approvalAt","approvalNotes","status","notes"].forEach(id=>{if($(id))$(id).value=""});
+ ["customerId","deviceId","type","source","priority","technicianId","scheduledAt","address","problem","diagnosis","actionsDone","partsRequired","estimatedCost","beforePhotos","technicalNotes","approvalStatus","approvalAt","approvalNotes","status","notes"].forEach(id=>{if($(id))$(id).value=""});
  $("deviceId").disabled=true;$("customerInfo").innerHTML="";$("approvalStatus").value="غير مطلوبة";$("priority").value="عادية";$("status").value="جديد";
-}
-function loadInventoryItems(){
- const items=C.list(C.KEYS.inventory).filter(x=>!x.archived).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar"));
- $("usedPartItem").innerHTML='<option value="">اختر القطعة</option>'+items.map(x=>{
-  const q=Number(x.quantity||0),res=Number(x.reservedQuantity||0),avail=Math.max(0,q-res);
-  return '<option value="'+esc(C.idOf(x))+'">'+esc(x.name||C.idOf(x))+' — متاح '+avail+'</option>';
- }).join("");
-}
-function currentRequestId(){return editingId||""}
-function usedPartsForRequest(id){
- if(!id)return [];
- return C.list(C.KEYS.inventoryTransactions).filter(t=>String(t.requestId||t.reference||"")===String(id)&&["صرف","استخدام","تركيب","صرف لفني","صرف مخزون"].includes(String(t.type||"")));
-}
-function renderUsedParts(id=currentRequestId()){
- const rows=usedPartsForRequest(id);
- if($("partsCount"))$("partsCount").textContent=rows.reduce((n,x)=>n+Math.abs(Number(x.qty||0)),0);
- if($("usedPartsList"))$("usedPartsList").innerHTML=rows.length?rows.map(x=>'<div class="used-part"><span>🔧 '+esc(x.itemName||x.itemId)+' × '+Math.abs(Number(x.qty||0))+'</span><small>'+esc(displayDate(x.date))+'</small></div>').join(""):'<div class="muted">لم تُسجل قطع غيار لهذا الأمر بعد.</div>';
-}
-function confirmAddUsedPart(){
- const rid=currentRequestId(),itemId=val("usedPartItem"),qty=Number(val("usedPartQty")||0);
- if(!rid)throw new Error("احفظ أمر الشغل أولًا ثم أضف قطع الغيار.");
- if(!itemId)throw new Error("اختر قطعة الغيار.");
- if(!Number.isFinite(qty)||qty<=0)throw new Error("أدخل كمية صحيحة.");
- const item=C.inventoryItem(itemId);if(!item)throw new Error("قطعة الغيار غير موجودة.");
- C.consumeInventory(itemId,qty,"صرف",rid,"قطعة غيار مستخدمة في أمر الشغل",ACTOR);
- const savedReq=C.findRequest(rid),unitPrice=Number(item.salePrice??item.sellingPrice??item.unitPrice??item.price??item.costPrice??0)||0;
- const used=Array.isArray(savedReq.usedParts)?savedReq.usedParts.slice():[];
- used.push({itemId,itemName:item.name||itemId,qty,unitPrice,total:unitPrice*qty,addedAt:new Date().toISOString()});
- const partsCost=used.reduce((n,x)=>n+Number(x.total||0),0);
- C.saveRequest(Object.assign({},savedReq,{usedParts:used,partsCost}),ACTOR);
- renderUsedParts(rid);loadInventoryItems();$("usedPartQty").value=1;show("تمت إضافة قطعة الغيار وتحديث حساب القطع.");
-}
-function quickCustomerOpen(){$("quickCustomerModal").classList.add("open");$("qcName").focus()}
-function quickCustomerClose(){$("quickCustomerModal").classList.remove("open")}
-function quickDeviceOpen(){
- const cid=val("customerId");if(!cid)throw new Error("اختر العميل أولًا.");
- const types=C.deviceTypeList();$("qdType").innerHTML='<option value="">اختر النوع</option>'+types.map(x=>'<option value="'+esc(x.name||x.id)+'">'+esc(x.name||x.id)+'</option>').join("");
- $("qdSubtype").innerHTML='<option value="">اختياري</option>';$("quickDeviceModal").classList.add("open");
-}
-function quickDeviceClose(){$("quickDeviceModal").classList.remove("open")}
-function saveQuickCustomer(){
- const name=val("qcName"),phone=val("qcPhone");if(!name||!phone)throw new Error("اسم العميل ورقم الهاتف مطلوبان.");
- const saved=C.saveCustomer({name,phone,governorate:val("qcGov")||"المنيا",center:val("qcCenter")||"مطاي",village:val("qcVillage"),street:val("qcStreet"),address:val("qcAddress")},ACTOR);
- loadCustomers(C.idOf(saved));$("customerId").value=C.idOf(saved);loadCustomerContext();quickCustomerClose();show("تم تسجيل العميل وإضافته لأمر الشغل.");
-}
-function saveQuickDevice(){
- const cid=val("customerId"),type=val("qdType");if(!cid||!type)throw new Error("العميل ونوع الجهاز مطلوبان.");
- const saved=C.saveDevice({customerId:cid,type,subtype:val("qdSubtype"),brand:val("qdBrand"),model:val("qdModel"),workshopSerial:val("qdWorkshopSerial"),notes:val("qdNotes")},ACTOR);
- loadCustomerContext();$("deviceId").value=C.idOf(saved);quickDeviceClose();show("تم تسجيل الجهاز وإضافته لأمر الشغل.");
-}
-function updateQuickSubtypes(){
- const type=val("qdType"),subs=C.deviceSubtypeOptions(type)||[];
- $("qdSubtype").innerHTML='<option value="">اختياري</option>'+subs.map(x=>'<option>'+esc(x)+'</option>').join("");
 }
 function validateForm(){
  const cid=val("customerId"),did=val("deviceId"),type=val("type"),source=val("source"),priority=val("priority"),status=val("status"),problem=val("problem");
@@ -363,7 +251,7 @@ function buildData(){
   customerId:cid,deviceId:did,type:val("type"),requestType:val("type"),source:val("source"),
   priority:val("priority"),status:val("status"),technicianId:tid||"",
   scheduledAt:localDate($("scheduledAt").value),visitDate:localDate($("scheduledAt").value),
-  address:val("address"),executionPlace:val("executionPlace"),workshopStatus:val("workshopStatus"),problem:val("problem"),faultDescription:val("problem"),
+  address:val("address"),problem:val("problem"),faultDescription:val("problem"),
   diagnosis:val("diagnosis"),cause:val("diagnosis"),actionsDone:val("actionsDone"),
   partsRequired:val("partsRequired"),estimatedCost:Number(val("estimatedCost")||0),
   beforePhotos:val("beforePhotos"),technicalNotes:val("technicalNotes"),
@@ -374,12 +262,9 @@ function buildData(){
 function save(){
  try{
   validateForm();
-  const wasEditing=!!editingId;
   const item=C.saveRequest(buildData(),ACTOR);
-  editingId=item.id;
-  edit(item.id);
-  show(wasEditing?"تم حفظ تعديل أمر الشغل "+item.id:"تم إنشاء أمر الشغل "+item.id+" — يمكنك الآن إضافة القطع والبيانات النهائية.");
-  render();integrity();
+  show(editingId?"تم تحديث أمر الشغل "+item.id:"تم إنشاء أمر الشغل "+item.id);
+  if(window.TWMSUI&&TWMSUI.afterSave)TWMSUI.afterSave(editingId?"تم تحديث أمر الشغل":"تم إنشاء أمر الشغل", "record.html?type=requests&id="+encodeURIComponent(item.id)); else {resetForm();render();integrity();}
  }catch(e){console.error(e);show(e.message||"تعذر الحفظ.","err")}
 }
 function edit(id){
@@ -389,11 +274,10 @@ function edit(id){
  $("type").value=r.type||r.requestType||"";$("source").value=r.source||"بلاغ هاتفي";$("priority").value=r.priority||"عادية";$("status").value=r.status||"جديد";
  loadCustomerContext();$("deviceId").value=r.deviceId||r.applianceId||"";
  $("scheduledAt").value=r.scheduledAt?new Date(r.scheduledAt).toISOString().slice(0,16):(r.visitDate?new Date(r.visitDate).toISOString().slice(0,16):"");
- $("address").value=r.address||"";$("executionPlace").value=r.executionPlace||"منزل العميل";$("workshopStatus").value=r.workshopStatus||"غير مطلوب";$("problem").value=r.problem||r.faultDescription||"";$("diagnosis").value=r.diagnosis||r.cause||"";
+ $("address").value=r.address||"";$("problem").value=r.problem||r.faultDescription||"";$("diagnosis").value=r.diagnosis||r.cause||"";
  $("actionsDone").value=r.actionsDone||"";$("partsRequired").value=r.partsRequired||"";$("estimatedCost").value=r.estimatedCost||"";
  $("beforePhotos").value=r.beforePhotos||"";$("technicalNotes").value=r.technicalNotes||"";$("approvalStatus").value=r.approvalStatus||"غير مطلوبة";
  $("approvalAt").value=r.approvalAt?new Date(r.approvalAt).toISOString().slice(0,16):"";$("approvalNotes").value=r.approvalNotes||"";$("notes").value=r.notes||"";
- loadInventoryItems();renderUsedParts(id);
  window.scrollTo({top:0,behavior:"smooth"});
 }
 function removeRequest(id){
@@ -419,16 +303,12 @@ function render(){
   return hay.includes(q)&&(!sf||r.status===sf)&&(!pf||r.priority===pf);
  });
  $("count").textContent="عدد الأوامر: "+filtered.length+" من "+all.length;
- const nowD=new Date();$("openCount").textContent=all.filter(r=>!["مكتمل","مغلق","ملغي","مؤرشف"].includes(String(r.status||""))).length;
- $("todayCount").textContent=all.filter(r=>{const x=new Date(r.scheduledAt||r.visitDate||"");return !isNaN(x)&&x.toDateString()===nowD.toDateString()}).length;
- $("scheduledCount").textContent=all.filter(r=>{const x=new Date(r.scheduledAt||r.visitDate||"");return !isNaN(x)&&x>=nowD}).length;
- $("partsCount").textContent=C.list(C.KEYS.inventoryTransactions).filter(t=>["صرف","استخدام","تركيب","صرف لفني","صرف مخزون"].includes(String(t.type||""))).reduce((n,t)=>n+Math.abs(Number(t.qty||0)),0);
  $("requestsList").innerHTML=filtered.length?filtered.slice().reverse().map(card).join(""):'<div class="info">لا توجد أوامر مطابقة.</div>';
 }
 function card(r){
  const id=C.idOf(r),st=r.status||"جديد",pr=r.priority||"عادية",done=["مكتمل","مغلق"].includes(st);
  const visits=C.requestVisits(id).length,inv=C.requestInvoices(id).length,w=C.requestWarranties(id).length;
- return '<article class="request">'+
+ return '<article class="request"><button type="button" class="blue twms-360" data-act="view360" data-id="'+esc(id)+'">👁️ 360°</button>'+
  '<h3>🔧 '+esc(id)+' — '+esc(customerName(r.customerId||r.clientId))+'</h3>'+
  '<div class="badges"><span class="badge">👤 '+esc(r.customerId||"")+'</span><span class="badge">📱 '+esc(deviceName(r.deviceId||r.applianceId))+'</span>'+
  '<span class="badge '+(pr==="عاجلة جدًا"||pr==="عاجلة"?"priority":"")+'">⚡ '+esc(pr)+'</span>'+
@@ -436,15 +316,26 @@ function card(r){
  '<span class="badge">👨‍🔧 '+esc(technicianName(r.technicianId))+'</span></div>'+
  '<p><b>نوع الخدمة:</b> '+esc(r.type||r.requestType||"غير محدد")+' — <b>المصدر:</b> '+esc(r.source||"غير محدد")+'</p>'+
  '<p><b>المشكلة:</b> '+esc(r.problem||"غير مسجلة")+'</p>'+
- '<p><b>الموعد:</b> '+esc(displayDate(r.scheduledAt||r.visitDate))+'<br><b>المكان:</b> '+esc(r.executionPlace||"منزل العميل")+'<br><b>العنوان:</b> '+esc(r.address||"غير محدد")+'<br><b>الورشة:</b> '+esc(r.workshopStatus||"غير مطلوب")+'</p>'+
- '<div class="badges"><span class="badge">📅 زيارات: '+visits+'</span><span class="badge">🧾 فواتير: '+inv+'</span><span class="badge">🛡️ ضمان: '+w+'</span><span class="badge">🔧 قطع: '+Number(r.partsCost||0).toFixed(2)+'</span></div>'+
+ '<p><b>الموعد:</b> '+esc(displayDate(r.scheduledAt||r.visitDate))+'<br><b>العنوان:</b> '+esc(r.address||"غير محدد")+'</p>'+
+ '<div class="badges"><span class="badge">📅 زيارات: '+visits+'</span><span class="badge">🧾 فواتير: '+inv+'</span><span class="badge">🛡️ ضمان: '+w+'</span></div>'+
  '<div class="actions">'+
  '<button class="blue" data-act="view" data-id="'+esc(id)+'">👁️ التفاصيل</button>'+
  '<button class="gray" data-act="edit" data-id="'+esc(id)+'">✏️ تعديل</button>'+
  '<button class="amber" data-act="next" data-id="'+esc(id)+'">🔄 تغيير الحالة</button>'+
- (C.canDeleteRequest?'<button class="danger" data-act="delete" data-id="'+esc(id)+'">🗑️ حذف</button>':"")+
+ '<button class="danger" data-act="delete" data-id="'+esc(id)+'">🗑️ حذف</button>'+
  '</div></article>';
 }
+function show360(id){
+ const r=C.findRequest(id);if(!r)return;
+ const customer=C.findCustomer(r.customerId||r.clientId),device=C.findDevice(r.deviceId||r.applianceId);
+ const visits=C.requestVisits(id),invs=C.requestInvoices(id),payments=C.requestPayments(id),ws=C.requestWarranties(id);
+ $("modalTitle").textContent="ملف أمر الشغل 360° — "+id;
+ $("modalBody").innerHTML='<div class="info"><b>العميل:</b> '+esc(customer?customerName(customer):"—")+' ('+esc(r.customerId||"")+')<br><b>الجهاز:</b> '+esc(device?deviceName(device):deviceName(r.deviceId||r.applianceId))+' ('+esc(r.deviceId||"")+')<br><b>الفني:</b> '+esc(technicianName(r.technicianId))+'<br><b>الحالة:</b> '+esc(r.status||"—")+' — <b>الأولوية:</b> '+esc(r.priority||"—")+'</div>'+\
+ '<div class="panel"><h3>🧰 التشخيص والتنفيذ</h3><p><b>المشكلة:</b> '+esc(r.problem||"—")+'</p><p><b>التشخيص:</b> '+esc(r.diagnosis||r.cause||"—")+'</p><p><b>الأعمال:</b> '+esc(r.actionsDone||"—")+'</p><p><b>القطع:</b> '+esc(r.partsRequired||"—")+'</p></div>'+\
+ '<div class="panel"><h3>🔗 العلاقات</h3><p>الزيارات: '+visits.length+' | الفواتير: '+invs.length+' | المدفوعات: '+payments.length+' | الضمانات: '+ws.length+'</p></div>';
+ $("modal").classList.add("open");
+}
+
 function showDetails(id){
  const r=C.findRequest(id);if(!r)return;
  const visits=C.requestVisits(id),invs=C.requestInvoices(id),payments=C.requestPayments(id),ws=C.requestWarranties(id);
@@ -457,11 +348,9 @@ function showDetails(id){
  '<b>التاريخ:</b> '+esc(displayDate(r.createdAt))+'</div>'+
  '<div class="panel"><h3>🧰 التشخيص والتنفيذ</h3><p><b>المشكلة:</b> '+esc(r.problem||"—")+'</p><p><b>التشخيص:</b> '+esc(r.diagnosis||r.cause||"—")+'</p><p><b>الإجراءات:</b> '+esc(r.actionsDone||"—")+'</p><p><b>القطع المطلوبة:</b> '+esc(r.partsRequired||"—")+'</p><p><b>التكلفة التقديرية:</b> '+esc(r.estimatedCost||0)+' '+esc(C.settings().currency)+'</p></div>'+
  '<div class="panel"><h3>🤝 الموافقة</h3><p>'+esc(r.approvalStatus||"غير مطلوبة")+' — '+esc(r.approvalNotes||"لا توجد ملاحظات")+'</p></div>'+
- '<div class="panel"><h3>📦 قطع الغيار المستخدمة — إجمالي '+Number(r.partsCost||0).toFixed(2)+' '+esc(C.settings().currency)+'</h3>'+(usedPartsForRequest(id).map(x=>'<div class="used-part"><span>🔧 '+esc(x.itemName||x.itemId)+' × '+Math.abs(Number(x.qty||0))+'</span><small>'+esc(displayDate(x.date))+'</small></div>').join("")||'<div class="muted">لا توجد قطع مسجلة.</div>')+'</div>'+
- '<div class="panel"><h3>💳 الحساب</h3>'+(invs.map(i=>{const bal=C.invoiceBalance(C.idOf(i));return '<div class="pay-box">فاتورة '+esc(C.idOf(i))+' — الإجمالي '+Number(C.invoiceTotal(i)).toFixed(2)+' '+esc(C.settings().currency)+' — المتبقي <b>'+bal.toFixed(2)+'</b> '+esc(C.settings().currency)+(bal>0?'<br><button type="button" class="primary" style="margin-top:8px" data-payfull="'+esc(C.idOf(i))+'">💳 تم الدفع نهائيًا</button>':'<div style="margin-top:8px;color:#146c2e">✅ تم السداد</div>')+'</div>'}).join("")||'<div class="muted">لا توجد فاتورة مرتبطة.</div>')+'</div>'+
  '<div class="panel"><h3>🔗 العلاقات</h3><p>الزيارات: '+visits.length+' | الفواتير: '+invs.length+' | المدفوعات: '+payments.length+' | الضمانات: '+ws.length+'</p></div>'+
  '<div class="actions">'+C.STATUSES.map(s=>'<button class="'+(s==="ملغي"?"danger":"gray")+'" data-modalstatus="'+esc(s)+'" data-id="'+esc(id)+'">'+esc(s)+'</button>').join("")+'</div>';
- $("detailsModal").dataset.requestId=id;$("detailsModal").classList.add("open");
+ $("detailsModal").classList.add("open");
 }
 function integrity(){
  try{
@@ -472,37 +361,18 @@ function integrity(){
 }
 
 $("customerId").addEventListener("change",loadCustomerContext);
-$("quickCustomerBtn").addEventListener("click",()=>{try{quickCustomerOpen()}catch(e){show(e.message,"err")}});
-$("quickDeviceBtn").addEventListener("click",()=>{try{quickDeviceOpen()}catch(e){show(e.message,"err")}});
-$("saveQuickCustomer").addEventListener("click",()=>{try{saveQuickCustomer()}catch(e){show(e.message,"err")}});
-$("closeQuickCustomer").addEventListener("click",quickCustomerClose);
-$("saveQuickDevice").addEventListener("click",()=>{try{saveQuickDevice()}catch(e){show(e.message,"err")}});
-$("closeQuickDevice").addEventListener("click",quickDeviceClose);
-$("qdType").addEventListener("change",updateQuickSubtypes);
-$("confirmUsedPartBtn").addEventListener("click",()=>{try{confirmAddUsedPart()}catch(e){show(e.message,"err")}});
 $("saveBtn").addEventListener("click",save);
 $("cancelBtn").addEventListener("click",resetForm);
 $("resetBtn").addEventListener("click",resetForm);
 $("search").addEventListener("input",render);$("statusFilter").addEventListener("change",render);$("priorityFilter").addEventListener("change",render);
 $("requestsList").addEventListener("click",e=>{
  const b=e.target.closest("button");if(!b)return;const id=b.dataset.id,act=b.dataset.act;
- if(act==="view")showDetails(id);if(act==="edit")edit(id);if(act==="delete")removeRequest(id);
+ if(act==="view360")show360(id);else if(act==="view")showDetails(id);if(act==="edit")edit(id);if(act==="delete")removeRequest(id);
  if(act==="next"){const r=C.findRequest(id);if(!r)return;const i=C.STATUSES.indexOf(r.status);const next=C.STATUSES[Math.min(i+1,C.STATUSES.length-1)];if(next&&next!==r.status)setStatus(id,next);}
 });
 $("closeModal").addEventListener("click",()=>$("detailsModal").classList.remove("open"));
 $("detailsModal").addEventListener("click",e=>{
  if(e.target===$("detailsModal"))$("detailsModal").classList.remove("open");
- const pay=e.target.closest("[data-payfull]");
- if(pay){
-  try{
-   const invId=pay.dataset.payfull,bal=C.invoiceBalance(invId);
-   if(bal<=0){show("الفاتورة مسددة بالفعل.");return}
-   if(!confirm("تأكيد استلام كامل المتبقي "+bal.toFixed(2)+" "+C.settings().currency+"؟"))return;
-   C.savePayment({invoiceId:invId,amount:bal,type:"سداد نهائي",status:"مؤكدة",method:"نقدي",requestId:id},ACTOR);
-   show("تم تسجيل السداد النهائي.");showDetails($("detailsModal").dataset.requestId);
-  }catch(e){show(e.message||"تعذر تسجيل السداد.","err")}
-  return;
- }
  const b=e.target.closest("[data-modalstatus]");if(b){setStatus(b.dataset.id,b.dataset.modalstatus);showDetails(b.dataset.id)}
 });
 

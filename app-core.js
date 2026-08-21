@@ -1,5 +1,5 @@
 /* =========================================================
-   الورشة الفنية - TWMS Core V4.7.1 Unified Regression Gated
+   الورشة الفنية - TWMS Core V4.7.0 Unified Regression Gated
    المرجع الموحد للبيانات والعلاقات وقواعد العمل - Core V4.7.0.
    ملاحظة أمنية: localStorage مناسب للنسخة المحلية/التجريبية فقط.
    الصلاحيات والأمان الحقيقيان يحتاجان Backend عند الإنتاج.
@@ -7,7 +7,7 @@
 (function(window){
 "use strict";
 
-const CORE_VERSION="4.7.1-unified";
+const CORE_VERSION="4.7.0-unified";
 
 const KEYS={
  deviceImages:"deviceImages",deviceLog:"deviceLog",deviceTypes:"deviceTypes",deviceQr:"deviceQr",deviceKnowledge:"deviceKnowledge",
@@ -132,20 +132,6 @@ function numberPart(prefix,id){const m=String(id||"").match(new RegExp("^"+escRe
 function nextId(prefix,key,width){
  let max=0;list(key).forEach(x=>{max=Math.max(max,numberPart(prefix,idOf(x)));});
  return prefix+String(max+1).padStart(width||5,"0");
-}
-
-function nextWorkOrderId(){
- const d=new Date();
- const yy=String(d.getFullYear()).slice(-2);
- const month=d.getMonth()+1;
- const day=d.getDate();
- const prefix=`W${yy}-${month}-${day}-`;
- let max=0;
- list(KEYS.requests).forEach(r=>{
-  const m=String(idOf(r)).match(new RegExp("^"+escReg(prefix)+"(\\d+)$"));
-  if(m)max=Math.max(max,Number(m[1]));
- });
- return prefix+(max+1);
 }
 function settings(){return Object.assign({},DEFAULT_SETTINGS,read(KEYS.settings,{}));}
 function saveSettings(patch,actor){
@@ -1253,7 +1239,7 @@ function saveRequest(input,actor){
   arr[i]=Object.assign({},old,data,{id:oldId,updatedAt:now()});
   coreWrite(KEYS.requests,arr);syncRelations();audit("تعديل","أوامر الشغل",oldId,"تم تعديل أمر الشغل",actor);recalculateCustomerClassification(data.customerId,actor);rewardReferralForSuccessfulService(findRequest(oldId),actor);return findRequest(oldId);
  }
- const id=nextWorkOrderId();
+ const id=nextId("WO-",KEYS.requests,6);
  const item=Object.assign({id,createdAt:now(),approved:false},data);
  arr.push(item);coreWrite(KEYS.requests,arr);
  recordStatusChange(id,"",item.status,actor);audit("إضافة","أوامر الشغل",id,"تم إنشاء أمر شغل",actor);syncRelations();recalculateCustomerClassification(item.customerId,actor);rewardReferralForSuccessfulService(findRequest(id),actor);return findRequest(id);
@@ -1976,6 +1962,15 @@ function saveAuditManual(data,actor){requirePermission("audit",actor);assert(dat
 function exportBackup(actor){requirePermission("settings",actor);const data={exportedAt:now(),version:CORE_VERSION,settings:settings(),data:{}};Object.keys(KEYS).forEach(k=>{const key=KEYS[k];data.data[key]=read(key,Array.isArray(read(key,null))?[]:{});});audit("تصدير نسخة احتياطية","الإعدادات","","تصدير نسخة احتياطية",actor);return data;}
 function importBackup(data,actor){requirePermission("settings",actor);assert(data&&typeof data==="object","ملف النسخة الاحتياطية غير صالح.");if(data.settings)saveSettings(data.settings,actor);if(data.data&&typeof data.data==="object"){Object.entries(data.data).forEach(([key,value])=>{if(Object.values(KEYS).includes(key))coreWrite(key,clone(value));});}syncRelations();const result=validateIntegrity();audit("استيراد نسخة احتياطية","الإعدادات","",result.ok?"تم استيراد نسخة احتياطية":"تم الاستيراد مع وجود مشاكل في العلاقات",actor,{result:result.ok?"success":"warning"});return result;}
 
+function clearAllOperationalData(actor){
+ requirePermission("settings",actor);
+ const keep=[KEYS.settings];
+ const keys=Object.values(KEYS).filter(k=>!keep.includes(k));
+ keys.forEach(k=>coreWrite(k,Array.isArray(read(k,null))?[]:{}));
+ audit("حذف عام","النظام","","تم حذف جميع البيانات التشغيلية مع الإبقاء على إعدادات النظام",actor);
+ return true;
+}
+
 function moduleContract(){
  return {
   entities:Object.assign({},KEYS),
@@ -2043,14 +2038,14 @@ window.WorkshopCore={
  VERSION:CORE_VERSION,KEYS,DEFAULT_SETTINGS,WORK_ORDER_TYPES,PRIORITIES,STATUSES,
  getPermissionRegistry,setPermissionRegistry,getWorkflowPolicy,setWorkflowPolicy,allowedWorkflowTransition,assertWorkflowTransition,
  auditImmutable,deleteAudit,updateAudit,
- read,list,write:publicWriteBlocked,now,today,clean,idOf,nextId,nextWorkOrderId,settings,saveSettings,find,findCustomer,findDevice,findRequest,
+ read,list,write:publicWriteBlocked,now,today,clean,idOf,nextId,settings,saveSettings,find,findCustomer,findDevice,findRequest,
  findTechnician,findVisit,findInvoice,findPayment,customerName,technicianName,requestCustomerId,requestDeviceId,
 findPossibleCustomerMatches,findCustomerRelationshipSuggestions,customerRelationships,linkCustomerRelationship,addCustomerPhone,requestCustomerMerge,mergeCustomers,resolveCustomerId,findCustomerByPhone,
  customerDevices,customerRequests,customerVisits,customerInvoices,customerPayments,customerClassification,recalculateCustomerClassification,customerPhoneExists,requestVisits,requestInvoices,
  requestPayments,requestWarranties,technicianVisits,invoiceTotal,paymentsForInvoice,invoicePaid,invoiceRefunded,
  invoiceBalance,inventoryItem,inventoryQuantity,addInventoryTransaction,consumeInventory,getOrCreateLoyalty,donateLoyaltyPoints,charityFundSummary,savePromotion,listPromotions,applyPromotionToInvoice,promotionUsages,referralCodeForCustomer,ensureReferralCode,findReferralByCode,registerReferral,referralsForCustomer,rewardReferralForSuccessfulService,
  loyaltyPoints,changeLoyalty,awardInvoiceLoyalty,audit,syncRelations,validateIntegrity,validateCustomerDevice,validateRequestRefs,
- saveRequest,updateRequestStatus,deleteRequest,addVisit,updateVisit,cancelVisit,requestWorkOrder,customerFinancialSummary,customer360,systemSummary,moduleContract,mutationPolicy,runIntegrityCheck,regressionSelfTest,log,hasPermission,requirePermission,requireAnyPermission,legacyList,legacyWrite,legacyRemove,canonicalKey,saveCustomer,archiveCustomer,deleteCustomer,saveDevice,findDuplicateDevice,findDeviceByWorkshopSerial,findDeviceByLegacySerial,deviceFingerprint,isStaffActor,device360,deviceWorkOrders,deviceVisits,deviceInvoices,deviceWarranties,deviceContracts,archiveDevice,deleteDevice,deriveDeviceCondition,syncDeviceConditions,deviceTypeList,deviceSubtypeOptions,saveDeviceType,addDeviceAttachment,deviceAttachments,deviceHistory,appendDeviceHistory,setDeviceQr,getDeviceQr,setDeviceKnowledge,getDeviceKnowledge,deviceLifecycle,deviceSearch,saveTechnician,archiveTechnician,saveSupplier,saveRoute,deleteRoute,savePurchaseOrder,receivePurchase,approvePurchaseOrder,receivePurchaseOrder,saveInventoryItem,archiveInventoryItem,deleteInventoryItem,saveInvoice,savePayment,cancelPayment,refundPayment,saveApproval,saveDiagnosis,assignTechnician,saveWarranty,saveContract,saveComplaint,saveRating,reserveInventory,releaseInventoryReservation,returnPurchase,decrementInventoryForPurchaseReturn,archiveRating,saveNotification,updateNotification,saveCustomerMessage,saveUser,setUserStatus,deleteUser,saveTechnicalLibrary,deleteTechnicalLibrary,saveLoyaltySettings,saveNotificationSettings,saveInventoryTransaction,adjustInventoryCount,deletePurchaseOrder,saveAuditManual,exportBackup,importBackup
+ saveRequest,updateRequestStatus,deleteRequest,addVisit,updateVisit,cancelVisit,requestWorkOrder,customerFinancialSummary,customer360,systemSummary,moduleContract,mutationPolicy,runIntegrityCheck,regressionSelfTest,log,hasPermission,requirePermission,requireAnyPermission,legacyList,legacyWrite,legacyRemove,canonicalKey,saveCustomer,archiveCustomer,deleteCustomer,saveDevice,findDuplicateDevice,findDeviceByWorkshopSerial,findDeviceByLegacySerial,deviceFingerprint,isStaffActor,device360,deviceWorkOrders,deviceVisits,deviceInvoices,deviceWarranties,deviceContracts,archiveDevice,deleteDevice,deriveDeviceCondition,syncDeviceConditions,deviceTypeList,deviceSubtypeOptions,saveDeviceType,addDeviceAttachment,deviceAttachments,deviceHistory,appendDeviceHistory,setDeviceQr,getDeviceQr,setDeviceKnowledge,getDeviceKnowledge,deviceLifecycle,deviceSearch,saveTechnician,archiveTechnician,saveSupplier,saveRoute,deleteRoute,savePurchaseOrder,receivePurchase,approvePurchaseOrder,receivePurchaseOrder,saveInventoryItem,archiveInventoryItem,deleteInventoryItem,saveInvoice,savePayment,cancelPayment,refundPayment,saveApproval,saveDiagnosis,assignTechnician,saveWarranty,saveContract,saveComplaint,saveRating,reserveInventory,releaseInventoryReservation,returnPurchase,decrementInventoryForPurchaseReturn,archiveRating,saveNotification,updateNotification,saveCustomerMessage,saveUser,setUserStatus,deleteUser,saveTechnicalLibrary,deleteTechnicalLibrary,saveLoyaltySettings,saveNotificationSettings,saveInventoryTransaction,adjustInventoryCount,deletePurchaseOrder,saveAuditManual,exportBackup,importBackup,clearAllOperationalData
 };
 try{
  migrateWorkOrdersToCanonical();
