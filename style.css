@@ -56,3 +56,8 @@ button,input,select,textarea{font-size:inherit}
 
 /* V11 additions only: side actions keep the 360 button in the empty left side of cards */
 .record-card{position:relative;padding-left:112px!important;min-height:104px}.card-side-actions{position:absolute;left:10px;top:10px;display:flex;flex-direction:column;gap:6px;align-items:stretch;width:92px}.card-side-actions .small-btn{width:100%;text-align:center}.danger-btn{background:#8f1d2c!important;color:#fff!important;border:0;border-radius:8px;padding:7px 10px;font:inherit;cursor:pointer}.danger-btn:hover{filter:brightness(1.08)}.danger-strong{background:#b00020!important}.danger-panel{border:1px solid #d7a3aa!important}.delete-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.delete-actions .danger-btn{width:100%}@media(max-width:650px){.record-card{padding-left:100px!important}.card-side-actions{left:7px;top:8px;width:84px}.card-side-actions .small-btn{font-size:10px!important;padding:6px 5px!important}.delete-actions{grid-template-columns:1fr}}
+
+/* V11.1 PWA install control */
+#installAppBtn{margin-inline-start:auto;white-space:nowrap;align-self:center}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+@media (max-width:600px){#installAppBtn{font-size:.86rem;padding:9px 12px}.brand h1{font-size:1.45rem}.brand p{font-size:.9rem}}

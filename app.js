@@ -191,3 +191,31 @@ initRequests=function(){_oldInitRequests();setupQuickForms()}
 const _oldInitDevices=initDevices;
 initDevices=function(){_oldInitDevices();setupQuickForms()}
 document.addEventListener('DOMContentLoaded',()=>setTimeout(setupQuickForms,0));
+
+// V11.1 PWA: install support + offline registration. This does not touch localStorage data.
+(function setupPWA(){
+  let deferredPrompt=null;
+  window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault();
+    deferredPrompt=e;
+    const btn=document.getElementById('installAppBtn');
+    if(btn) btn.classList.remove('hidden');
+  });
+  window.addEventListener('appinstalled',()=>{
+    deferredPrompt=null;
+    const btn=document.getElementById('installAppBtn');
+    if(btn){btn.textContent='✅ تم التثبيت';btn.disabled=true;}
+  });
+  window.installWorkshopApp=async function(){
+    if(!deferredPrompt){alert('التثبيت متاح من قائمة المتصفح إذا لم يظهر زر التثبيت تلقائيًا.');return;}
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt=null;
+  };
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(err=>console.warn('PWA service worker:',err)));
+  }
+  window.addEventListener('online',()=>document.documentElement.dataset.network='online');
+  window.addEventListener('offline',()=>document.documentElement.dataset.network='offline');
+  document.documentElement.dataset.network=navigator.onLine?'online':'offline';
+})();
