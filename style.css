@@ -71,3 +71,6 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .photo-gallery{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}.photo-gallery .photo{margin:0}.today-summary{display:flex;justify-content:space-between;gap:12px;align-items:center;background:#f7f9fc;border:1px solid #e2e6eb;border-radius:12px;padding:12px;margin:10px 0}.today-section-title{margin:16px 4px 8px}.today-done{opacity:.72}.select-search-wrap{display:flex;flex-direction:column;gap:6px}.select-search-wrap input{width:100%}.select-search-wrap select{width:100%}
 
 .inline-search{width:100%;box-sizing:border-box;margin-bottom:6px;padding:8px;border:1px solid #d0d5dd;border-radius:8px;background:#fff}.select-add{display:flex;flex-direction:column;gap:4px}.select-add .mini-action{align-self:flex-start}
+
+/* V11.2.1 batch2 correction: one visible searchable picker, no duplicate select field */
+.picker-source{display:none!important}.picker-list{position:relative;z-index:30;background:#fff;border:1px solid #d0d5dd;border-radius:9px;max-height:220px;overflow:auto;box-shadow:0 8px 20px rgba(0,0,0,.12)}.picker-list.hidden{display:none}.picker-option{padding:10px 12px;border-bottom:1px solid #eef1f4;cursor:pointer;color:#222}.picker-option:last-child{border-bottom:0}.picker-option:hover{background:#f2f6fa}.picker-empty{padding:10px;color:#667085}
