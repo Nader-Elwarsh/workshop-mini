@@ -20,3 +20,6 @@
 
 
 V11.2: updated PWA/app icons using the workshop logo; application logic unchanged.
+
+
+V11.2.3: online-first static asset refresh with offline fallback and new cache version.

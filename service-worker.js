@@ -1,4 +1,4 @@
-const CACHE_NAME = "workshop-v11-2-2-icon-refresh-pwa";
+const CACHE_NAME = "workshop-v11-2-3-auto-update-pwa";
 const CORE_FILES = [
   "./",
   "./index.html",
@@ -60,17 +60,17 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Static files: cache first, then network and save the new copy.
+  // Static files: network first when online so a newly deployed version is
+  // picked up quickly; fall back to the local cache when offline.
   event.respondWith(
-    caches.match(request).then(cached => {
-      if (cached) return cached;
-      return fetch(request).then(response => {
+    fetch(request)
+      .then(response => {
         if (response.ok) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
         }
         return response;
-      });
-    })
+      })
+      .catch(() => caches.match(request))
   );
 });
