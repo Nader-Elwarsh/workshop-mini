@@ -1,4 +1,4 @@
-const CACHE_NAME = "workshop-mini-v2-orders-list-fix";
+const CACHE_NAME = "workshop-v11-2-3-auto-update-pwa";
 const CORE_FILES = [
   "./",
   "./index.html",
@@ -13,7 +13,6 @@ const CORE_FILES = [
   "./settings.html",
   "./style.css",
   "./app.js",
-  "./workshop-mini-enhancements.js",
   "./manifest.json",
   "./icon-192-v2.png",
   "./icon-512-v2.png"
