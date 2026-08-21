@@ -17,3 +17,6 @@
 
 ## مهم
 بيانات النظام محفوظة في localStorage على نفس المتصفح/الجهاز. النسخة الحالية ليست مزامنة سحابية بين الأجهزة.
+
+
+V11.2: updated PWA/app icons using the workshop logo; application logic unchanged.
