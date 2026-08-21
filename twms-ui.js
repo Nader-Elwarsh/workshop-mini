@@ -25,106 +25,6 @@ window.TWMSUI.flash=function(message,type){
  setTimeout(()=>{if(box)box.remove()},3500);
 };
 
-/* =========================================================
-   إدارة البيانات — حذف آمن مع نسخة احتياطية
-   لا يتم الحذف مباشرة: يلزم تأكيد + كتابة كلمة الحذف.
-   ========================================================= */
-window.TWMSUI.dataManager = {
-  backup: function(filename){
-    const data = {};
-    for(let i=0;i<localStorage.length;i++){
-      const key = localStorage.key(i);
-      try { data[key] = JSON.parse(localStorage.getItem(key)); }
-      catch(e) { data[key] = localStorage.getItem(key); }
-    }
-    const blob = new Blob([JSON.stringify({
-      exportedAt: new Date().toISOString(),
-      storage: data
-    }, null, 2)], {type:"application/json"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename || ("twms-backup-" + new Date().toISOString().slice(0,10) + ".json");
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),1000);
-    return true;
-  },
-
-  clearAll: function(){
-    const ok = window.confirm(
-      "تنبيه: سيتم حذف كل البيانات المحلية للموقع من هذا الجهاز.\n\n" +
-      "يفضل عمل نسخة احتياطية أولاً.\n\nهل تريد المتابعة؟"
-    );
-    if(!ok) return false;
-
-    const phrase = window.prompt(
-      "للتأكيد النهائي اكتب بالضبط:\nحذف الكل"
-    );
-    if(phrase !== "حذف الكل"){
-      window.TWMSUI.flash("تم إلغاء الحذف ولم تتغير أي بيانات.","error");
-      return false;
-    }
-
-    /* نسخة طوارئ داخل sessionStorage قبل المسح، إن أمكن */
-    try{
-      const snapshot = {};
-      for(let i=0;i<localStorage.length;i++){
-        const key = localStorage.key(i);
-        snapshot[key] = localStorage.getItem(key);
-      }
-      sessionStorage.setItem(
-        "TWMS_LAST_DELETED_BACKUP",
-        JSON.stringify({at:new Date().toISOString(),storage:snapshot})
-      );
-    }catch(e){}
-
-    localStorage.clear();
-    window.TWMSUI.flash("تم مسح البيانات المحلية. أعد تحميل الصفحة.","success");
-    setTimeout(()=>location.reload(),900);
-    return true;
-  },
-
-  installPanel: function(){
-    if(document.getElementById("twmsDataTools")) return;
-
-    const host =
-      document.querySelector("#settings, #dataSettings, .settings-page, .settings-section") ||
-      document.querySelector("main") ||
-      document.body;
-
-    const panel = document.createElement("section");
-    panel.id = "twmsDataTools";
-    panel.setAttribute("dir","rtl");
-    panel.innerHTML = `
-      <div class="twms-data-tools-card">
-        <div class="twms-data-tools-title">🗄️ إدارة البيانات</div>
-        <div class="twms-data-tools-note">
-          اعمل نسخة احتياطية قبل أي حذف. الحذف النهائي يحتاج تأكيد إضافي.
-        </div>
-        <div class="twms-data-tools-actions">
-          <button type="button" id="twmsBackupBtn">💾 نسخة احتياطية</button>
-          <button type="button" id="twmsClearBtn" class="danger">🗑️ مسح كل البيانات</button>
-        </div>
-      </div>`;
-    host.appendChild(panel);
-
-    panel.querySelector("#twmsBackupBtn").onclick =
-      ()=>window.TWMSUI.dataManager.backup();
-    panel.querySelector("#twmsClearBtn").onclick =
-      ()=>window.TWMSUI.dataManager.clearAll();
-  }
-};
-
-function installDataManager(){
-  const path = location.pathname + " " + location.hash;
-  if(/عملا|عملاء|customers|settings|ضبط|إعدادات/i.test(path) ||
-     document.querySelector("#settings,#dataSettings,.settings-page")){
-    window.TWMSUI.dataManager.installPanel();
-  }
-}
-
 /* إصلاح موضع زر فتح 360° في بطاقات العملاء */
 function fixCustomer360Buttons(){
  if(!document.querySelector("#customersList, #customerManagementCards, .customer")) return;
@@ -180,8 +80,7 @@ function installCustomer360Fix(){
  const style=document.createElement("style");
  style.textContent=
   ".twms-360-slot{display:flex!important;justify-content:flex-start!important;align-items:center!important;width:100%!important;clear:both!important;margin-top:8px!important;padding-top:8px!important;border-top:1px solid rgba(127,127,127,.16)!important}" +
-  ".twms-360-slot>a,.twms-360-slot>button{position:static!important;float:none!important;transform:none!important;max-width:100%!important}" +
-  "#twmsDataTools{margin:16px 0} .twms-data-tools-card{padding:16px;border:1px solid rgba(127,127,127,.25);border-radius:14px;background:rgba(127,127,127,.06)} .twms-data-tools-title{font-size:1.05em;font-weight:700;margin-bottom:7px}.twms-data-tools-note{font-size:.9em;opacity:.75;line-height:1.7}.twms-data-tools-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.twms-data-tools-actions button{border:0;border-radius:10px;padding:10px 14px;cursor:pointer;font:inherit}.twms-data-tools-actions .danger{background:#7f1d1d;color:#fff}";
+  ".twms-360-slot>a,.twms-360-slot>button{position:static!important;float:none!important;transform:none!important;max-width:100%!important}";
  document.head.appendChild(style);
 
  fixCustomer360Buttons();
@@ -200,124 +99,84 @@ if(document.readyState==="loading"){
 })();
 
 
-/* زر منفصل لحذف العميل الحالي بأمان */
-window.TWMSUI.deleteCustomer = function(customerId, customerName, callbacks){
-  const name = String(customerName || "هذا العميل");
-  const id = String(customerId || "");
+/* زر حذف منفصل داخل كل بطاقة عميل */
+(function(){
+  const STYLE_ID="twms-delete-customer-style";
 
-  if(!id){
-    window.TWMSUI.flash("لم يتم تحديد العميل", "error");
-    return false;
+  function style(){
+    if(document.getElementById(STYLE_ID)) return;
+    const s=document.createElement("style");
+    s.id=STYLE_ID;
+    s.textContent=".twms-customer-actions{display:flex!important;flex-wrap:wrap!important;gap:7px!important;align-items:center!important;justify-content:flex-start!important;width:100%!important;clear:both!important;margin-top:10px!important;padding-top:8px!important;border-top:1px solid rgba(127,127,127,.14)!important}.twms-delete-customer-btn{display:inline-flex!important;position:static!important;width:auto!important;min-width:92px!important;height:38px!important;padding:6px 12px!important;margin:0!important;border:0!important;border-radius:9px!important;background:#7d2020!important;color:#fff!important;font:inherit!important;line-height:1!important;cursor:pointer!important;z-index:2!important}";
+    document.head.appendChild(s);
   }
 
-  const ok1 = window.confirm(
-    'حذف العميل "' + name + '"؟\n\nسيتم حذف ملف العميل فقط بعد التأكيد.'
-  );
-  if(!ok1) return false;
-
-  const typed = window.prompt(
-    'للتأكيد النهائي اكتب: حذف\n\nلن يتم تنفيذ الحذف بدون كتابة الكلمة بشكل صحيح.'
-  );
-  if(typed !== "حذف"){
-    window.TWMSUI.flash("تم إلغاء الحذف", "error");
-    return false;
+  function cardFor(el){
+    return el.closest(".customer-card,.customer,.client-card,.client,[data-customer-id],article,.card")||el.parentElement?.parentElement;
   }
 
-  try{
-    if(callbacks && typeof callbacks.beforeDelete === "function"){
-      callbacks.beforeDelete(id);
-    }
+  function idOf(card){
+    return card?.getAttribute("data-customer-id")||card?.dataset.customerId||card?.querySelector("[data-customer-id]")?.getAttribute("data-customer-id")||"";
+  }
 
-    /* دعم أكثر من اسم شائع لمخزن العملاء */
-    const keys = ["customers","clients","workshop_customers"];
-    let removed = false;
+  function nameOf(card){
+    const el=card?.querySelector(".customer-name,[data-customer-name],h2,h3,.name");
+    return (el?.textContent||"هذا العميل").replace(/\s+/g," ").trim();
+  }
 
-    keys.forEach(key=>{
+  function removeLocal(id,name){
+    let changed=false;
+    for(const key of ["customers","clients","workshop_customers"]){
       try{
-        const raw = localStorage.getItem(key);
-        if(!raw) return;
-        const data = JSON.parse(raw);
+        const raw=localStorage.getItem(key); if(!raw) continue;
+        const data=JSON.parse(raw);
         if(Array.isArray(data)){
-          const next = data.filter(x =>
-            String(x?.id ?? x?.customerId ?? "") !== id
-          );
-          if(next.length !== data.length){
-            localStorage.setItem(key, JSON.stringify(next));
-            removed = true;
-          }
+          const next=data.filter(x=>{
+            const xid=String(x?.id??x?.customerId??"");
+            const xn=String(x?.name??x?.fullName??x?.customerName??"").trim();
+            return id ? xid!==String(id) : xn!==String(name).trim();
+          });
+          if(next.length!==data.length){localStorage.setItem(key,JSON.stringify(next));changed=true;}
         }
       }catch(e){}
-    });
-
-    if(callbacks && typeof callbacks.afterDelete === "function"){
-      callbacks.afterDelete(id);
     }
-
-    window.TWMSUI.flash(
-      removed ? "تم حذف العميل بنجاح" : "لم يتم العثور على سجل مطابق",
-      removed ? "success" : "error"
-    );
-
-    setTimeout(()=>window.location.reload(), 500);
-    return removed;
-  }catch(e){
-    window.TWMSUI.flash("تعذر حذف العميل", "error");
-    return false;
+    return changed;
   }
-};
 
-/* إنشاء زر حذف منفصل داخل بطاقة العميل إن وُجد معرف للبطاقة */
-function installCustomerDeleteButtons(){
-  const cards = document.querySelectorAll(
-    ".customer, .customer-card, [data-customer-id], article"
-  );
-
-  cards.forEach(card=>{
-    if(card.dataset.twmsDeleteAdded==="1") return;
-
-    const id = card.getAttribute("data-customer-id") ||
-      card.dataset.customerId ||
-      card.querySelector("[data-customer-id]")?.getAttribute("data-customer-id");
-
-    if(!id) return;
-
-    const nameEl = card.querySelector(
-      ".customer-name, [data-customer-name], h2, h3"
-    );
-    const name = nameEl ? nameEl.textContent.trim() : "هذا العميل";
-
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = "🗑️ حذف العميل";
-    btn.style.cssText =
-      "display:inline-flex;align-items:center;justify-content:center;" +
-      "margin:8px 0 0 8px;padding:8px 12px;border:0;border-radius:8px;" +
-      "background:#8b1e1e;color:#fff;font:inherit;cursor:pointer;";
-
-    btn.addEventListener("click", ()=>{
-      window.TWMSUI.deleteCustomer(id, name);
-    });
-
-    let actions = card.querySelector(
-      ".customer-actions, .actions, .buttons, .card-actions"
-    );
-
-    if(!actions){
-      actions = document.createElement("div");
-      actions.className = "twms-customer-actions";
-      actions.style.cssText =
-        "display:flex;flex-wrap:wrap;gap:6px;align-items:center;" +
-        "justify-content:flex-start;margin-top:8px;";
-      card.appendChild(actions);
+  function del(card){
+    const id=idOf(card), name=nameOf(card);
+    if(!confirm('حذف العميل "'+name+'"?\n\nسيتم حذف ملف العميل فقط بعد التأكيد.')) return;
+    if(prompt("للتأكيد النهائي اكتب: حذف")!=="حذف"){
+      window.TWMSUI?.flash?.("تم إلغاء الحذف","error"); return;
     }
+    try{
+      if(typeof window.deleteCustomer==="function") window.deleteCustomer(id||name);
+      else if(typeof window.removeCustomer==="function") window.removeCustomer(id||name);
+      else if(removeLocal(id,name)){card.remove();window.TWMSUI?.flash?.("تم حذف العميل","success");}
+      else window.TWMSUI?.flash?.("لم يتم العثور على دالة حذف العميل في التطبيق","error");
+    }catch(e){window.TWMSUI?.flash?.("تعذر تنفيذ الحذف","error");}
+  }
 
-    actions.appendChild(btn);
-    card.dataset.twmsDeleteAdded = "1";
-  });
-}
+  function install(){
+    style();
+    const targets=[...document.querySelectorAll(".customer-card,.customer,.client-card,.client,[data-customer-id],article,.card")];
+    document.querySelectorAll("a,button").forEach(b=>{
+      if(/فتح\s*360/.test((b.textContent||"").replace(/\s+/g,""))){
+        const c=cardFor(b); if(c&&!targets.includes(c)) targets.push(c);
+      }
+    });
+    targets.forEach(card=>{
+      if(!card||card.dataset.twmsDeleteButton==="1") return;
+      if(!/فتح\s*360|📞|الهاتف|العنوان/.test((card.textContent||"").replace(/\s+/g,""))) return;
+      let box=card.querySelector(".twms-customer-actions");
+      if(!box){box=document.createElement("div");box.className="twms-customer-actions";card.appendChild(box);}
+      const b=document.createElement("button");
+      b.type="button";b.className="twms-delete-customer-btn";b.textContent="🗑️ حذف";
+      b.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();del(card);});
+      box.appendChild(b);card.dataset.twmsDeleteButton="1";
+    });
+  }
 
-if(document.readyState==="loading"){
-  document.addEventListener("DOMContentLoaded", installCustomerDeleteButtons);
-}else{
-  installCustomerDeleteButtons();
-}
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",install); else install();
+  new MutationObserver(install).observe(document.body,{childList:true,subtree:true});
+})();
