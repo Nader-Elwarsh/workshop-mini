@@ -249,3 +249,10 @@
 
 ونركز فقط على:
 **الترابط + صحة البيانات + سهولة الاستخدام + البحث + ملفات 360° + الحذف الآمن بالتأكيد + اختبار التكامل بين الأقسام.**
+
+## Batch 1 — 5 requested improvements
+- Multiple photos for devices and spare parts.
+- Today's orders as a remaining/done checklist based on status/workshop/parts state.
+- Deposit allowed when final total is still zero/unknown.
+- Customer address auto-population remains tied to the selected customer.
+- Search inputs for customer, device, and address/village selection.

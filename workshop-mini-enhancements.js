@@ -264,3 +264,9 @@
     }, 0);
   });
 })();
+
+
+/* Batch 1: searchable customer/device/address selectors */
+(function(){
+  const configs=[['rCustomer','بحث عن العميل…'],['rDevice','بحث عن الجهاز…'],['rAddress','بحث عن العنوان / القرية…'],['dCustomer','بحث عن العميل…'],['dAddress','بحث عن العنوان / القرية…']];
+  function attach(id,ph){const s=document.getElementById(id);if(!s||s.dataset.searchAttached)return;s.dataset.searchAttached='1';const w=document.createElement('div');w.className='select-search-wrap';s.parentNode.insertBefore(w,s);w.appendChild(s);const i=document.createElement('input');i.className='search';i.placeholder=ph;w.insertBefore(i,s);function sync(){const opt=Array.from(s.options).find(o=>o.value===s.value);i.value=opt&&s.value?opt.textContent.trim():''}i.addEventListener('input',()=>{const q=i.value.trim().toLowerCase();const opts=Array.from(s.options);const hit=opts.find(o=>o.value&&o.textContent.toLowerCase().includes(q));if(hit){s.value=hit.value;s.dispatchEvent(new Event('change',{bubbles:true}));}else if(!q){s.value='';s.dispatchEvent(new Event('change',{bubbles:true}));}});s.addEventListener('change',sync);new MutationObserver(sync).observe(s,{childList:true});sync();}function run(){configs.forEach(x=>attach(x[0],x[1]))}document.addEventListener('DOMContentLoaded',run);setTimeout(run,300);setTimeout(run,900);})();

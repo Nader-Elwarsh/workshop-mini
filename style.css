@@ -68,8 +68,4 @@ button,input,select,textarea{font-size:inherit}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 @media (max-width:600px){#installAppBtn{font-size:.86rem;padding:9px 12px}.brand h1{font-size:1.45rem}.brand p{font-size:.9rem}}
 
-/* Inline work-order status update */
-.inline-status-select{width:100%;padding:7px 8px;border:1px solid #cfd7df;border-radius:8px;font:inherit;background:#fff;color:inherit;font-weight:bold;min-height:34px}.inline-status-select:disabled{opacity:.65;cursor:not-allowed}
-
-/* Inline work-order status update */
-.inline-status-select{width:100%;padding:7px 8px;border:1px solid #cfd7df;border-radius:8px;font:inherit;background:#fff;color:inherit;font-weight:bold;min-height:34px}.inline-status-select:disabled{opacity:.65;cursor:not-allowed}
+.photo-gallery{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}.photo-gallery .photo{margin:0}.today-summary{display:flex;justify-content:space-between;gap:12px;align-items:center;background:#f7f9fc;border:1px solid #e2e6eb;border-radius:12px;padding:12px;margin:10px 0}.today-section-title{margin:16px 4px 8px}.today-done{opacity:.72}.select-search-wrap{display:flex;flex-direction:column;gap:6px}.select-search-wrap input{width:100%}.select-search-wrap select{width:100%}
