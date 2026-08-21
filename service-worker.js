@@ -1,4 +1,4 @@
-const CACHE_NAME = "workshop-v11-2-pwa";
+const CACHE_NAME = "workshop-v11-2-1-pwa";
 const CORE_FILES = [
   "./",
   "./index.html",
@@ -40,16 +40,22 @@ self.addEventListener("fetch", event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Pages: try the network first so the app updates normally, then use cache offline.
+  // HTML pages: cache by pathname, not by query string.
+  // This makes customer.html?id=..., device.html?id=... and request.html?id=...
+  // open correctly while offline; app.js reads the ID from the URL.
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
         .then(response => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+          const cacheKey = new Request(url.origin + url.pathname, {method:"GET"});
+          caches.open(CACHE_NAME).then(cache => cache.put(cacheKey, copy));
           return response;
         })
-        .catch(() => caches.match(request).then(cached => cached || caches.match("./index.html")))
+        .catch(() => {
+          const cacheKey = new Request(url.origin + url.pathname, {method:"GET"});
+          return caches.match(cacheKey).then(cached => cached || caches.match("./index.html"));
+        })
     );
     return;
   }
