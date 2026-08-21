@@ -1,4 +1,4 @@
-const CACHE_NAME = "workshop-v11-2-7-orders-list-fix";
+const CACHE_NAME = "workshop-mini-v2-orders-list-fix";
 const CORE_FILES = [
   "./",
   "./index.html",
