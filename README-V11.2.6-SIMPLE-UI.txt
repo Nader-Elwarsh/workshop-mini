@@ -11,3 +11,8 @@
 8) لا يتم تغيير بنية localStorage أو حذف البيانات الحالية.
 
 هذه النسخة مبنية على NaderminiToP-approved.zip.
+
+PWA ICON UPDATE V11.2.7
+- The PWA manifest and service-worker cache version were bumped.
+- New unique icon filenames are used to prevent Android from reusing the old launcher icon cache.
+- App data/storage is not touched by this icon update.

@@ -1,4 +1,4 @@
-const CACHE_NAME = "workshop-v11-2-3-auto-update-pwa";
+const CACHE_NAME = "workshop-v11-2-7-auto-update-pwa";
 const CORE_FILES = [
   "./",
   "./index.html",
@@ -14,8 +14,8 @@ const CORE_FILES = [
   "./style.css",
   "./app.js",
   "./manifest.json",
-  "./icon-192-v2.png",
-  "./icon-512-v2.png"
+  "./icon-192-v11-2-7.png",
+  "./icon-512-v11-2-7.png"
 ];
 
 self.addEventListener("install", event => {
