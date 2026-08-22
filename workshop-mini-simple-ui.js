@@ -11,7 +11,9 @@
     devices: false,
     parts: false,
     requests: false,
-    requestBucket: ""
+    requestBucket: "",
+    customerBucket: "",
+    deviceBucket: ""
   };
 
   const $ = (id) => document.getElementById(id);
@@ -75,6 +77,24 @@
     return `<button type="button" class="simple-tile ${cls}" onclick="${action}"><span>${icon}</span><b>${label}</b></button>`;
   }
 
+  function activeOrdersForCustomer(cid) {
+    return requestRows().filter(r => r.customerId === cid && !orderIsCompleted(r) && r.status !== "ملغي");
+  }
+
+  function activeOrdersForDevice(did) {
+    return requestRows().filter(r => r.deviceId === did && !orderIsCompleted(r) && r.status !== "ملغي");
+  }
+
+  function hasWorkshopDeviceForCustomer(cid) {
+    return deviceRows().some(d => d.customerId === cid && requestRows().some(r =>
+      r.deviceId === d.id && orderIsWorkshop(r) && !orderIsCompleted(r)
+    ));
+  }
+
+  function hasWorkshopDevice(did) {
+    return requestRows().some(r => r.deviceId === did && orderIsWorkshop(r) && !orderIsCompleted(r));
+  }
+
   /* ---------- العملاء ---------- */
   window.showAllCustomers = function () {
     state.customers = true;
@@ -88,130 +108,126 @@
     renderCustomers();
   };
 
+  window.showCustomerBucket = function (bucket) {
+    state.customers = true;
+    $("customerSearch")?.classList.remove("hidden");
+    state.customerBucket = bucket;
+    renderCustomers();
+  };
+
+  function customerBucketMatch(c, bucket) {
+    const orders = requestRows().filter(r => r.customerId === c.id);
+    const active = orders.some(r => !orderIsCompleted(r) && r.status !== "ملغي");
+    const workshop = hasWorkshopDeviceForCustomer(c.id);
+    if (bucket === "active") return active;
+    if (bucket === "workshop") return workshop;
+    if (bucket === "completed") return orders.length > 0 && !active && orders.some(r => orderIsCompleted(r));
+    if (bucket === "none") return orders.length === 0;
+    return true;
+  }
+
   window.renderCustomers = function () {
     const el = $("customerList");
     if (!el) return;
     const all = customerRows();
 
     if (!state.customers) {
-      const centers = (typeof settings === "function" ? settings().centers : ["مطاي","بني مزار"]);
-      const cards = centers.map(center => {
-        const n = all.filter(c => (c.mainAddress?.center || "") === center).length;
-        return `<div class="simple-stat"><span>📍</span><b>${esc2(center)}</b><strong>${n}</strong><small>عميل</small></div>`;
-      }).join("");
-
+      const active = all.filter(c => customerBucketMatch(c, "active")).length;
+      const workshop = all.filter(c => customerBucketMatch(c, "workshop")).length;
+      const completed = all.filter(c => customerBucketMatch(c, "completed")).length;
+      const none = all.filter(c => customerBucketMatch(c, "none")).length;
       el.innerHTML = `
         <section class="simple-home">
           <div class="simple-summary-title"><b>👤 العملاء</b><span>${all.length} إجمالي</span></div>
-          <div class="simple-stat-grid">${cards}</div>
+          <div class="simple-stat-grid">
+            ${simpleButton("لديه أمر شغل", "🛠️", "showCustomerBucket('active')", "")}
+            ${simpleButton("لديه جهاز في الورشة", "🏭", "showCustomerBucket('workshop')", "")}
+            ${simpleButton("أوامره مكتملة", "✅", "showCustomerBucket('completed')", "")}
+            ${simpleButton("ليس لديه أمر شغل", "👤", "showCustomerBucket('none')", "")}
+          </div>
           <div class="simple-main-actions">
-            ${simpleButton("كل العملاء","👥","showAllCustomers()","primary-tile")}
-            <a class="simple-action-link" href="settings.html#locations">⚙️ إدارة المراكز والقرى</a>
+            ${simpleButton("كل العملاء", "👥", "showAllCustomers()", "primary-tile")}
           </div>
         </section>`;
       return;
     }
 
     const q = ($("customerSearch")?.value || "").toLowerCase().trim();
+    const bucket = state.customerBucket || "";
     const filtered = all.filter(c => {
-      const text = [
-        c.name, c.phone, c.phone2, c.nickname,
-        addressText(c.mainAddress || {}),
-        addressText(c.extraAddress || {})
-      ].filter(Boolean).join(" ").toLowerCase();
+      if (bucket && !customerBucketMatch(c, bucket)) return false;
+      const text = [c.name, c.phone, c.phone2, c.nickname,
+        addressText(c.mainAddress || {}), addressText(c.extraAddress || {})]
+        .filter(Boolean).join(" ").toLowerCase();
       return !q || text.includes(q);
     });
-
+    const title = {active:"لديه أمر شغل", workshop:"لديه جهاز في الورشة", completed:"أوامره مكتملة", none:"ليس لديه أمر شغل"}[bucket] || "كل العملاء";
     el.innerHTML = `
-      <div class="simple-list-head">
-        <b>كل العملاء</b>
-        <button type="button" class="secondary small-btn" onclick="hideAllCustomers()">رجوع للملخص</button>
-      </div>
+      <div class="simple-list-head"><b>${title}</b><button type="button" class="secondary small-btn" onclick="hideAllCustomers()">رجوع للملخص</button></div>
       ${filtered.length ? filtered.map(c => {
         const ds = deviceRows().filter(d => d.customerId === c.id).length;
         const rs = requestRows().filter(r => r.customerId === c.id).length;
-        return `<div class="simple-record">
-          <div class="simple-record-icon">👤</div>
-          <div class="simple-record-main">
-            <a href="customer.html?id=${c.id}"><b>${esc2(c.name)}</b></a>
-            <span>📞 ${esc2(c.phone || "—")}</span>
-            <small>📍 ${esc2(addressText(c.mainAddress || {}) || "—")} • 🔧 ${ds} أجهزة • 🛠️ ${rs} أوامر</small>
-          </div>
-          <div class="simple-record-actions">
-            <a class="secondary small-btn" href="customer.html?id=${c.id}">فتح</a>
-            <button class="danger-btn small-btn" onclick="deleteCustomerRecord('${c.id}')">حذف</button>
-          </div>
-        </div>`;
+        const ao = activeOrdersForCustomer(c.id).length;
+        const hw = hasWorkshopDeviceForCustomer(c.id);
+        return `<div class="simple-record"><div class="simple-record-icon">👤</div><div class="simple-record-main">
+          <a href="customer.html?id=${c.id}"><b>${esc2(c.name)}</b></a><span>📞 ${esc2(c.phone || "—")}</span>
+          <small>🔧 ${ds} أجهزة • 🛠️ ${rs} أوامر${ao ? ` • 🔴 ${ao} فعال` : ""}${hw ? " • 🏭 جهاز في الورشة" : ""}</small>
+        </div><div class="simple-record-actions"><a class="secondary small-btn" href="customer.html?id=${c.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteCustomerRecord('${c.id}')">حذف</button></div></div>`;
       }).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
   };
 
   /* ---------- الأجهزة ---------- */
   window.showAllDevices = function () {
-    state.devices = true;
-    $("deviceSearch")?.classList.remove("hidden");
-    renderDevices();
+    state.devices = true; state.deviceBucket = "";
+    $("deviceSearch")?.classList.remove("hidden"); renderDevices();
   };
 
   window.hideAllDevices = function () {
-    state.devices = false;
-    if ($("deviceSearch")) $("deviceSearch").classList.add("hidden");
-    renderDevices();
+    state.devices = false; state.deviceBucket = "";
+    if ($("deviceSearch")) $("deviceSearch").classList.add("hidden"); renderDevices();
   };
+
+  window.showDeviceBucket = function (bucket) {
+    state.devices = true; state.deviceBucket = bucket;
+    $("deviceSearch")?.classList.remove("hidden"); renderDevices();
+  };
+
+  function deviceBucketMatch(d, bucket) {
+    const orders = requestRows().filter(r => r.deviceId === d.id);
+    const active = orders.some(r => !orderIsCompleted(r) && r.status !== "ملغي");
+    const workshop = hasWorkshopDevice(d.id);
+    if (bucket === "active") return active;
+    if (bucket === "workshop") return workshop;
+    if (bucket === "completed") return orders.length > 0 && !active && orders.some(r => orderIsCompleted(r));
+    if (bucket === "none") return orders.length === 0;
+    return true;
+  }
 
   window.renderDevices = function () {
     const el = $("deviceList");
     if (!el) return;
     const all = deviceRows();
-
     if (!state.devices) {
-      const types = {};
-      all.forEach(d => {
-        const key = d.type || "أجهزة أخرى";
-        types[key] = (types[key] || 0) + 1;
-      });
-      const cards = Object.entries(types).slice(0, 6).map(([k,n]) =>
-        `<div class="simple-stat"><span>🔧</span><b>${esc2(k)}</b><strong>${n}</strong><small>جهاز</small></div>`
-      ).join("");
-
-      el.innerHTML = `
-        <section class="simple-home">
-          <div class="simple-summary-title"><b>🔧 الأجهزة</b><span>${all.length} إجمالي</span></div>
-          ${cards ? `<div class="simple-stat-grid">${cards}</div>` : `<div class="simple-empty">لا توجد أجهزة مسجلة.</div>`}
-          <div class="simple-main-actions">
-            ${simpleButton("كل الأجهزة","🔧","showAllDevices()","primary-tile")}
-          </div>
-        </section>`;
+      el.innerHTML = `<section class="simple-home"><div class="simple-summary-title"><b>🔧 الأجهزة</b><span>${all.length} إجمالي</span></div>
+        <div class="simple-stat-grid">
+          ${simpleButton("لديه أمر شغل", "🛠️", "showDeviceBucket('active')", "")}
+          ${simpleButton("موجود في الورشة", "🏭", "showDeviceBucket('workshop')", "")}
+          ${simpleButton("أمره مكتمل", "✅", "showDeviceBucket('completed')", "")}
+          ${simpleButton("ليس لديه أمر شغل", "🔧", "showDeviceBucket('none')", "")}
+        </div><div class="simple-main-actions">${simpleButton("كل الأجهزة", "🔧", "showAllDevices()", "primary-tile")}</div></section>`;
       return;
     }
-
     const q = ($("deviceSearch")?.value || "").toLowerCase().trim();
+    const bucket = state.deviceBucket || "";
     const filtered = all.filter(d => {
+      if (bucket && !deviceBucketMatch(d, bucket)) return false;
       const c = customerRows().find(x => x.id === d.customerId) || {};
-      const text = [
-        c.name, c.phone, d.type, d.category, d.brand, d.model, d.desc,
-        addressText(c.mainAddress || {}), addressText(c.extraAddress || {})
-      ].filter(Boolean).join(" ").toLowerCase();
+      const text = [c.name,c.phone,d.type,d.category,d.brand,d.model,d.desc,addressText(c.mainAddress||{}),addressText(c.extraAddress||{})].filter(Boolean).join(" ").toLowerCase();
       return !q || text.includes(q);
     });
-
-    el.innerHTML = `
-      <div class="simple-list-head">
-        <b>كل الأجهزة</b>
-        <button type="button" class="secondary small-btn" onclick="hideAllDevices()">رجوع للملخص</button>
-      </div>
-      ${filtered.length ? filtered.map(d => `
-        <div class="simple-record">
-          <div class="simple-record-icon">🔧</div>
-          <div class="simple-record-main">
-            <a href="device.html?id=${d.id}"><b>${esc2(d.type)} — ${esc2(d.brand)}</b></a>
-            <span>${esc2(d.category || "—")} • ${esc2(d.model || "بدون موديل")}</span>
-            <small>👤 ${esc2(customerName(d.customerId))} • 📍 ${esc2(addressText((customerRows().find(c=>c.id===d.customerId)||{}).mainAddress||{}) || "—")}</small>
-          </div>
-          <div class="simple-record-actions">
-            <a class="secondary small-btn" href="device.html?id=${d.id}">فتح</a>
-            <button class="danger-btn small-btn" onclick="deleteDeviceRecord('${d.id}')">حذف</button>
-          </div>
-        </div>`).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
+    const title = {active:"لديه أمر شغل", workshop:"موجود في الورشة", completed:"أمره مكتمل", none:"ليس لديه أمر شغل"}[bucket] || "كل الأجهزة";
+    el.innerHTML = `<div class="simple-list-head"><b>${title}</b><button type="button" class="secondary small-btn" onclick="hideAllDevices()">رجوع للملخص</button></div>
+      ${filtered.length ? filtered.map(d => `<div class="simple-record"><div class="simple-record-icon">🔧</div><div class="simple-record-main"><a href="device.html?id=${d.id}"><b>${esc2(d.type)} — ${esc2(d.brand)}</b></a><span>${esc2(d.category||"—")} • ${esc2(d.model||"بدون موديل")}</span><small>👤 ${esc2(customerName(d.customerId))}${activeOrdersForDevice(d.id).length ? ` • 🔴 ${activeOrdersForDevice(d.id).length} أمر فعال` : ""}${hasWorkshopDevice(d.id) ? " • 🏭 في الورشة" : ""}</small></div><div class="simple-record-actions"><a class="secondary small-btn" href="device.html?id=${d.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteDeviceRecord('${d.id}')">حذف</button></div></div>`).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
   };
 
   /* ---------- المخزن ---------- */
