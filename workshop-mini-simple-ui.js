@@ -382,9 +382,8 @@
             return `<div class="route-center"><b>📍 ${esc2(center)}</b>
               ${Object.entries(byVillage).map(([village,vr]) => `
                 <div class="route-village">
-                  <span>${esc2(village)}</span>
-                  <strong>${vr.length}</strong>
-                  <small>${vr.map(r=>`<a href="request.html?id=${r.id}">${esc2(r.no)}</a>`).join(" • ")}</small>
+                  <div class="route-village-head"><span>${esc2(village)}</span><strong>${vr.length}</strong></div>
+                  ${vr.map(r=>`<a href="request.html?id=${r.id}" class="route-order-link">${esc2(r.no)} — ${esc2(customerName(r.customerId))}</a>`).join("")}
                 </div>`).join("")}
             </div>`;
           }).join("")}
@@ -482,6 +481,7 @@
           <div class="simple-record-side">
             <span class="simple-status ${r.closed ? "closed" : ""}">${esc2(status)}</span>
             <b>${(+r.total||0).toFixed(2)} ج</b>
+            ${(+r.deposit||0) > 0 ? `<small class="deposit-chip">💵 عربون ${(+r.deposit).toFixed(2)} ج</small>` : ""}
           </div>
         </div>`;
       }).join("") : `<div class="item">لا توجد أوامر في هذا القسم.</div>`}`;
