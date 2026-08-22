@@ -12,11 +12,25 @@
     parts: false,
     requests: false,
     requestBucket: "",
+    partBucket: "",
     customerBucket: "",
     deviceBucket: ""
   };
 
   const $ = (id) => document.getElementById(id);
+  const categoryIcon = (cat) => {
+    const c = String(cat || "");
+    if (/غسال/.test(c)) return "🧺";
+    if (/ثلاج|فريزر/.test(c)) return "🧊";
+    if (/سخان/.test(c)) return "🔥";
+    if (/كمبروسر|كمبريسور/.test(c)) return "⚙️";
+    if (/تكييف|مكيف/.test(c)) return "❄️";
+    if (/بوتاجاز|فرن/.test(c)) return "🍳";
+    if (/شفاط/.test(c)) return "💨";
+    if (/مايكروويف/.test(c)) return "📡";
+    if (/غلاي|سخّان فوري/.test(c)) return "♨️";
+    return "📦";
+  };
   const rows = (key) => {
     try { return JSON.parse(localStorage.getItem(key) || "[]"); }
     catch { return []; }
@@ -233,12 +247,21 @@
   /* ---------- المخزن ---------- */
   window.showAllParts = function () {
     state.parts = true;
+    state.partBucket = "";
     $("partSearch")?.classList.remove("hidden");
+    renderParts();
+  };
+
+  window.showLowStockParts = function () {
+    state.parts = true;
+    state.partBucket = "low";
+    $("partSearch")?.classList.add("hidden");
     renderParts();
   };
 
   window.hideAllParts = function () {
     state.parts = false;
+    state.partBucket = "";
     if ($("partSearch")) $("partSearch").classList.add("hidden");
     renderParts();
   };
@@ -256,13 +279,13 @@
       });
       const low = all.filter(p => (+p.qty || 0) <= (+p.min || 0)).length;
       const cards = Object.entries(cats).slice(0, 6).map(([k,n]) =>
-        `<div class="simple-stat"><span>📦</span><b>${esc2(k)}</b><strong>${n}</strong><small>قطعة</small></div>`
+        `<div class="simple-stat"><span>${categoryIcon(k)}</span><b>${esc2(k)}</b><strong>${n}</strong><small>قطعة</small></div>`
       ).join("");
 
       el.innerHTML = `
         <section class="simple-home">
           <div class="simple-summary-title"><b>📦 المخزن</b><span>${all.length} صنف</span></div>
-          <div class="simple-stock-alert">⚠️ ${low} أصناف عند الحد الأدنى أو أقل</div>
+          ${low > 0 ? `<button type="button" class="simple-stock-alert" onclick="showLowStockParts()">⚠️ ${low} أصناف عند الحد الأدنى أو أقل</button>` : ""}
           ${cards ? `<div class="simple-stat-grid">${cards}</div>` : `<div class="simple-empty">لا توجد قطع مسجلة.</div>`}
           <div class="simple-main-actions">
             ${simpleButton("كل القطع","📦","showAllParts()","primary-tile")}
@@ -272,16 +295,23 @@
     }
 
     const q = ($("partSearch")?.value || "").toLowerCase().trim();
-    const filtered = all.filter(p => [p.name,p.code,p.location,p.category].filter(Boolean).join(" ").toLowerCase().includes(q));
+    const bucket = state.partBucket;
+    const filtered = all.filter(p => {
+      const ok = [p.name,p.code,p.location,p.category].filter(Boolean).join(" ").toLowerCase().includes(q);
+      if (bucket === "low") return ok && (+p.qty || 0) <= (+p.min || 0);
+      return ok;
+    });
+
+    const listTitle = bucket === "low" ? "أصناف عند الحد الأدنى أو أقل" : "كل القطع";
 
     el.innerHTML = `
       <div class="simple-list-head">
-        <b>كل القطع</b>
+        <b>${listTitle}</b>
         <button type="button" class="secondary small-btn" onclick="hideAllParts()">رجوع للملخص</button>
       </div>
       ${filtered.length ? filtered.map(p => `
         <div class="simple-record">
-          <div class="simple-record-icon">📦</div>
+          <div class="simple-record-icon">${categoryIcon(p.category)}</div>
           <div class="simple-record-main">
             <a href="part.html?id=${p.id}"><b>${esc2(p.name)}</b></a>
             <span>${esc2(p.category || "—")} • ${esc2(p.code || "بدون كود")}</span>

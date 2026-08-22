@@ -91,7 +91,8 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .simple-tile.primary-tile{background:#17324d;color:#fff;border-color:#17324d}
 .simple-action-link{padding:9px 11px;border-radius:9px;background:#eef2f5;color:#18212b;text-decoration:none;font-size:12px;font-weight:bold}
 .simple-empty{padding:14px;text-align:center;color:#687583;background:#f7f9fb;border-radius:10px;font-size:13px}
-.simple-stock-alert{background:#fff3cd;border-radius:9px;padding:8px 10px;font-size:12px;margin-bottom:8px}
+.simple-stock-alert{display:block;width:100%;text-align:right;background:#fff3cd;color:#7a5b00;border:none;border-radius:9px;padding:8px 10px;font-size:12px;margin-bottom:8px;font:inherit;cursor:pointer}
+.simple-stock-alert:active{opacity:.8}
 .simple-order-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .simple-order-grid .simple-tile{min-height:86px}
 .route-summary{margin-top:12px;background:#fff;border:1px solid #e2e6eb;border-radius:12px;padding:10px}
