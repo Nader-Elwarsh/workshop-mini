@@ -321,12 +321,27 @@
 
   function bucketFilter(r, b) {
     if (!b) return true;
+    if (b.indexOf("tag:") === 0) { const t = b.slice(4); return t ? r.tag === t : !r.tag; }
     if (b === "today") return orderIsToday(r);
     if (b === "workshop") return orderIsWorkshop(r);
     if (b === "completed") return orderIsCompleted(r);
     if (b === "parts") return orderIsParts(r);
     if (b === "overdue") return orderIsOverdue(r);
     return true;
+  }
+
+  function orderTagList() {
+    return (typeof settings === "function" ? (settings().orderTags || []) : []);
+  }
+
+  function tagSummaryHtml(all) {
+    const tags = orderTagList();
+    if (!tags.length) return "";
+    const chips = tags.map(t =>
+      simpleButton(t, "🏷️", `showRequestBucket('tag:${t.replace(/'/g, "\\'")}')`)
+    ).join("");
+    return `<div class="simple-summary-title"><b>🏷️ حسب التصنيف اليدوي</b></div>
+      <div class="simple-order-grid">${chips}${simpleButton("بدون تصنيف", "➖", "showRequestBucket('tag:')")}</div>`;
   }
 
   function orderLocationLabel(r) {
@@ -401,6 +416,7 @@
           ${simpleButton("متأخر","⚠️","showRequestBucket('overdue')")}
           ${simpleButton("كل الأوامر","🛠️","showAllRequests()","primary-tile")}
         </div>
+        ${tagSummaryHtml(all)}
       </section>
       ${renderRouteSummary(all)}`;
   }
@@ -445,7 +461,8 @@
       bucket === "workshop" ? "أوامر الورشة" :
       bucket === "completed" ? "الأوامر المكتملة" :
       bucket === "parts" ? "انتظار قطع الغيار" :
-      bucket === "overdue" ? "الأوامر المتأخرة" : "كل الأوامر";
+      bucket === "overdue" ? "الأوامر المتأخرة" :
+      (bucket && bucket.indexOf("tag:") === 0) ? `🏷️ ${bucket.slice(4) || "بدون تصنيف"}` : "كل الأوامر";
 
     el.innerHTML = `
       <div class="simple-list-head">
@@ -460,7 +477,7 @@
           <div class="simple-record-main">
             <a href="request.html?id=${r.id}"><b>${esc2(r.no || "أمر شغل")}</b></a>
             <span>${esc2(customerName(r.customerId))} • ${esc2(deviceName(r.deviceId))}</span>
-            <small>📍 ${esc2(loc.center)}${loc.village ? " • " + esc2(loc.village) : ""} • ${r.visit ? new Date(r.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "بدون موعد"}</small>
+            <small>📍 ${esc2(loc.center)}${loc.village ? " • " + esc2(loc.village) : ""} • ${r.visit ? new Date(r.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "بدون موعد"}${r.tag ? " • 🏷️ " + esc2(r.tag) : ""}</small>
           </div>
           <div class="simple-record-side">
             <span class="simple-status ${r.closed ? "closed" : ""}">${esc2(status)}</span>
