@@ -381,6 +381,8 @@
     if (b === "completed") return orderIsCompleted(r);
     if (b === "parts") return orderIsParts(r);
     if (b === "overdue") return orderIsOverdue(r);
+    if (b === "open") return !orderIsCompleted(r) && r.status !== "ملغي";
+    if (b === "unpaid") return !r.closed && Math.max(0, (+r.total || 0) - (+r.deposit || 0)) > 0;
     return true;
   }
 
@@ -519,6 +521,8 @@
       bucket === "completed" ? "الأوامر المكتملة" :
       bucket === "parts" ? "انتظار قطع الغيار" :
       bucket === "overdue" ? "الأوامر المتأخرة" :
+      bucket === "open" ? "الأوامر المفتوحة" :
+      bucket === "unpaid" ? "متبقي غير محصّل" :
       (bucket && bucket.indexOf("tag:") === 0) ? `🏷️ ${bucket.slice(4) || "بدون تصنيف"}` : "كل الأوامر";
 
     el.innerHTML = `
@@ -573,6 +577,26 @@
     window.markPaidAndClose(i);
   };
 
+  /* ---------- الدخول المباشر من إحصائيات الصفحة الرئيسية (?bucket=...) ---------- */
+  function applyDeepLinkBucket() {
+    const bucket = new URLSearchParams(location.search).get("bucket");
+    if (!bucket) return;
+    if ($("requestList")) {
+      if (bucket === "all") window.showAllRequests();
+      else window.showRequestBucket(bucket);
+    } else if ($("customerList")) {
+      if (bucket === "all") window.showAllCustomers();
+      else window.showCustomerBucket(bucket);
+    } else if ($("deviceList")) {
+      if (bucket === "all") window.showAllDevices();
+      else window.showDeviceBucket(bucket);
+    } else if ($("partList")) {
+      if (bucket === "low") window.showLowStockParts();
+      else if (bucket === "all") window.showAllParts();
+      else window.showPartsCategory(decodeURIComponent(bucket));
+    }
+  }
+
   function initSimpleView() {
     /* نخفي القوائم والبحث والفلاتر افتراضيًا. */
     ["customerSearch","deviceSearch","partSearch","requestSearch","statusFilter","workshopFilter"].forEach(id => {
@@ -590,6 +614,7 @@
     renderDevices();
     renderParts();
     renderRequests();
+    applyDeepLinkBucket();
   }
 
   document.addEventListener("DOMContentLoaded", () => setTimeout(initSimpleView, 0));
