@@ -11,6 +11,9 @@ function settings(){let s=get(K.s,null);if(!s)s={};let base=JSON.parse(JSON.stri
 function duplicateCustomerByPhone(phone,excludeId){let normalized=String(phone||"").replace(/\s+/g,"").trim();if(!normalized)return null;return arr(K.c).find(c=>String(c.id)!==String(excludeId||"")&&String(c.phone||"").replace(/\s+/g,"").trim()===normalized)||null}
 function arr(k){return get(k,[])} function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))} function id(){return crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)}
 function toggle(x){document.getElementById(x)?.classList.toggle("hidden")}
+const QUICK_ADD_LABELS={quickCustomerBox:"➕ عميل",quickDeviceBox:"➕ جهاز",quickDeviceCustomerBox:"➕ عميل"};
+function toggleQuickAdd(boxId){let box=document.getElementById(boxId);if(!box)return;let btn=document.querySelector(`[data-opens="${boxId}"]`);let opening=box.classList.contains("hidden");box.classList.toggle("hidden");if(btn){btn.textContent=opening?"➖ إلغاء الإضافة":(QUICK_ADD_LABELS[boxId]||"➕ إضافة");btn.classList.toggle("quick-add-open",opening)}if(opening)setTimeout(()=>box.scrollIntoView({behavior:"smooth",block:"nearest"}),50)}
+function closeQuickAdd(boxId){let box=document.getElementById(boxId);if(!box)return;box.classList.add("hidden");let btn=document.querySelector(`[data-opens="${boxId}"]`);if(btn){btn.textContent=QUICK_ADD_LABELS[boxId]||"➕ إضافة";btn.classList.remove("quick-add-open")}}
 function customerName(i){return arr(K.c).find(x=>x.id===i)?.name||"—"} function deviceName(i){let d=arr(K.d).find(x=>x.id===i);return d?`${d.type} - ${d.brand}`:"—"}
 function addresses(c){let e=c.extraAddress||{};let hasExtra=!!(e.center||e.village||e.street||e.address);return [{key:"main",label:"العنوان الأساسي",...c.mainAddress},...(hasExtra?[{key:"extra",label:"العنوان الإضافي",...e}]:[])]}
 function addressText(a){return `${a.center||""}${a.village?" - "+a.village:""}${a.address?" - "+a.address:""}${a.street?" - "+a.street:""}`}
@@ -255,7 +258,7 @@ function saveQuickCustomer(){
   let c={id:id(),name,phone,mainAddress:{center:qcCenter.value,village:qcVillage.value,address:"",street:qcStreet.value.trim()},extraAddress:{},createdAt:new Date().toISOString()};
   let a=arr(K.c);a.push(c);if(!saveJSONSafe(K.c,a))return;
   fillCustomer(rCustomer,c.id);fillAddress(rAddress,c.id,'main');
-  toggle('quickCustomerBox');
+  closeQuickAdd('quickCustomerBox');
   document.getElementById('quickCustomerBox').querySelectorAll('input').forEach(x=>x.value='');
   fillDevice(rDevice,c.id,'');
 }
@@ -264,13 +267,13 @@ function saveQuickDevice(){
   let d={id:id(),customerId:cid,addressKey:rAddress.value||'main',type:qdType.value,category:qdCategory.value,brand:qdBrand.value,model:qdModel.value.trim(),desc:qdDesc.value.trim(),photo:"",createdAt:new Date().toISOString()};
   if(!d.type||!d.category||!d.brand)return alert('اختر نوع الجهاز والتصنيف والماركة.');
   let a=arr(K.d);a.push(d);if(!saveJSONSafe(K.d,a))return;
-  fillDevice(rDevice,cid,d.id);toggle('quickDeviceBox');
+  fillDevice(rDevice,cid,d.id);closeQuickAdd('quickDeviceBox');
 }
 function saveDeviceCustomer(){
   let name=dcName.value.trim(),phone=dcPhone.value.trim();if(!name||!phone)return alert('اكتب اسم العميل والتليفون أولاً.');
   let duplicate=duplicateCustomerByPhone(phone);if(duplicate&&!confirm(`⚠️ الرقم مسجل بالفعل للعميل: ${duplicate.name||'—'}.\n\nهل تريد إنشاء عميل آخر بنفس الرقم؟`))return;
   let c={id:id(),name,phone,mainAddress:{center:dcCenter.value,village:dcVillage.value,address:"",street:dcStreet.value.trim()},extraAddress:{},createdAt:new Date().toISOString()};
-  let a=arr(K.c);a.push(c);if(!saveJSONSafe(K.c,a))return;fillCustomer(dCustomer,c.id);fillAddress(dAddress,c.id,'main');toggle('quickDeviceCustomerBox');
+  let a=arr(K.c);a.push(c);if(!saveJSONSafe(K.c,a))return;fillCustomer(dCustomer,c.id);fillAddress(dAddress,c.id,'main');closeQuickAdd('quickDeviceCustomerBox');
 }
 function setupQuickForms(){
   if(document.getElementById('quickCustomerBox'))setupQuickLocation('qc');
