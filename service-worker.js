@@ -1,4 +1,5 @@
-const CACHE_NAME = "workshop-v11-5-2-auto-update-pwa";
+const CACHE_NAME = "workshop-v11-6-0-auto-update-pwa";
+importScripts("./notif-shared.js");
 const CORE_FILES = [
   "./",
   "./index.html",
@@ -15,7 +16,8 @@ const CORE_FILES = [
   "./app.js",
   "./manifest.json",
   "./icon-192-v11-2-7.png",
-  "./icon-512-v11-2-7.png"
+  "./icon-512-v11-2-7.png",
+  "./notif-shared.js"
 ];
 
 self.addEventListener("install", event => {
@@ -72,5 +74,65 @@ self.addEventListener("fetch", event => {
         return response;
       })
       .catch(() => caches.match(request))
+  );
+});
+
+/* ---------------------------------------------------------------------
+   إشعارات في الخلفية (Periodic Background Sync) — دعم أفضل مجهود:
+   شغالة فعليًا على أندرويد/كروم لو التطبيق متثبت على الشاشة الرئيسية،
+   والمتصفح هو اللي بيقرر التوقيت الفعلي (مش مضمون بالظبط، ومش مدعوم
+   خالص على آيفون Safari). البيانات بتوصل من IndexedDB (notif-shared.js)
+   لأن الـ Service Worker مايقدرش يقرأ localStorage مباشرة.
+--------------------------------------------------------------------- */
+async function runNotificationCheck() {
+  let snap = await notifGet("snapshot");
+  if (!snap) return;
+  let today = new Date().toISOString().slice(0, 10);
+  let lastDate = await notifGet("lastNotifiedDate");
+  if (lastDate === today) return;
+  let shown = false;
+  if (snap.today && snap.today.length) {
+    await self.registration.showNotification("📅 مواعيد اليوم", {
+      body: `عندك ${snap.today.length} زيارة/زيارات اليوم.`,
+      icon: "./icon-192-v11-2-7.png", tag: "wf-today",
+      data: { url: "./requests.html?bucket=today" }
+    });
+    shown = true;
+  }
+  if (snap.overdue && snap.overdue.length) {
+    await self.registration.showNotification("⚠️ أوامر متأخرة", {
+      body: `فيه ${snap.overdue.length} أمر متأخر محتاج متابعة.`,
+      icon: "./icon-192-v11-2-7.png", tag: "wf-overdue",
+      data: { url: "./requests.html?bucket=overdue" }
+    });
+    shown = true;
+  }
+  if (snap.lowStock && snap.lowStock.length) {
+    await self.registration.showNotification("📉 قطع منخفضة", {
+      body: `فيه ${snap.lowStock.length} صنف وصل للحد الأدنى في المخزن.`,
+      icon: "./icon-192-v11-2-7.png", tag: "wf-lowstock",
+      data: { url: "./inventory.html?bucket=low" }
+    });
+    shown = true;
+  }
+  if (shown) await notifSet("lastNotifiedDate", today);
+}
+
+self.addEventListener("periodicsync", event => {
+  if (event.tag === "workshop-check") event.waitUntil(runNotificationCheck());
+});
+
+self.addEventListener("sync", event => {
+  if (event.tag === "workshop-check-once") event.waitUntil(runNotificationCheck());
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  let url = (event.notification.data && event.notification.data.url) || "./index.html";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window" }).then(list => {
+      for (const c of list) { if ("focus" in c) { c.postMessage({ type: "GO_TO", url }); return c.focus(); } }
+      return self.clients.openWindow(url);
+    })
   );
 });
