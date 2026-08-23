@@ -1,4 +1,4 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#001b4d"><link rel="manifest" href="manifest.json?v=11.3.3"><link rel="icon" type="image/png" sizes="192x192" href="icon-192-v11-2-7.png"><link rel="apple-touch-icon" href="icon-192-v11-2-7.png"><title>الورشة الفنية | النظام المصغر</title><link rel="stylesheet" href="style.css"></head><body>
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#001b4d"><link rel="manifest" href="manifest.json?v=11.4.0"><link rel="icon" type="image/png" sizes="192x192" href="icon-192-v11-2-7.png"><link rel="apple-touch-icon" href="icon-192-v11-2-7.png"><title>الورشة الفنية | النظام المصغر</title><link rel="stylesheet" href="style.css"></head><body>
 <header><div class="brand"><span>🛠️</span><div><h1>الورشة الفنية</h1><p>نظام إدارة الورشة المصغر</p></div></div><button id="installAppBtn" class="secondary hidden" type="button" onclick="installWorkshopApp()">📲 تثبيت التطبيق</button></header>
 <main>
 <section class="dashboard"><div class="dash-head"><h2>📊 ملخص الورشة</h2><span class="hint">إعدادات كل قسم داخل القسم نفسه</span></div><div id="dashboard"></div></section>
@@ -8,5 +8,25 @@
 <a class="card" href="requests.html"><i>🛠️</i><div class="card-text"><b>أوامر الشغل</b><span>التشغيل والحساب وقطع الغيار والتحصيل والإغلاق</span></div></a>
 <a class="card" href="inventory.html"><i>📦</i><div class="card-text"><b>المخزن</b><span>القطع والمواقع والحركات والتكلفة والمكسب</span></div></a>
 </div>
-<section class="report"><div class="dash-head"><h2>📈 كشف الحساب الشهري</h2><input id="reportMonth" type="month"></div><div id="monthlyReport"></div></section>
+<section class="report">
+  <div class="dash-head"><h2>📈 كشف الحساب</h2></div>
+  <div class="report-mode-toggle">
+    <button type="button" id="modeMonthBtn" class="secondary mini-action active-track" onclick="setReportMode('month')">📆 شهري</button>
+    <button type="button" id="modeWeekBtn" class="secondary mini-action" onclick="setReportMode('week')">🗓️ أسبوعي (الاثنين‑السبت)</button>
+  </div>
+  <input id="reportMonth" type="month">
+  <input id="reportWeek" type="week" class="hidden">
+  <div id="monthlyReport"></div>
+  <details class="expense-panel">
+    <summary>🧯 مصاريف التشغيل</summary>
+    <div class="form-grid expense-form">
+      <label>التاريخ<input id="expDate" type="date"></label>
+      <label>التصنيف<select id="expCategory"></select></label>
+      <label>المبلغ<input id="expAmount" type="number" step="0.01" min="0" placeholder="0.00"></label>
+      <label class="wide">ملاحظة<input id="expNote" placeholder="اختياري"></label>
+    </div>
+    <button type="button" class="primary expense-save" onclick="addExpense()">💾 حفظ المصروف</button>
+    <div id="expenseList"></div>
+  </details>
+</section>
 </main><script src="app.js"></script></body></html>

@@ -13,23 +13,34 @@
     requests: false,
     requestBucket: "",
     partBucket: "",
+    partCategory: "",
     customerBucket: "",
     deviceBucket: ""
   };
 
   const $ = (id) => document.getElementById(id);
+  const CATEGORY_ICONS = {
+    washer: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="2" width="18" height="20" rx="2"/><circle cx="7" cy="5.3" r="0.6" fill="currentColor" stroke="none"/><circle cx="10" cy="5.3" r="0.6" fill="currentColor" stroke="none"/><circle cx="12" cy="14" r="5.4"/><circle cx="12" cy="14" r="2.5"/></svg>`,
+    fridge: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="5" y1="8" x2="19" y2="8"/><line x1="16" y1="4" x2="16" y2="6.3"/><line x1="16" y1="10.5" x2="16" y2="13.8"/></svg>`,
+    heater: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="5"/><line x1="9.3" y1="7.5" x2="14.7" y2="7.5"/><line x1="9.3" y1="11.5" x2="14.7" y2="11.5"/></svg>`,
+    compressor: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>`,
+    ac: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="6" rx="2"/><path d="M8 9h8"/><line x1="5.5" y1="15" x2="5.5" y2="19"/><line x1="12" y1="15" x2="12" y2="20"/><line x1="18.5" y1="15" x2="18.5" y2="19"/></svg>`,
+    oven: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><circle cx="8" cy="9" r="1.6"/><circle cx="16" cy="9" r="1.6"/><rect x="6" y="14" width="12" height="4" rx="1"/></svg>`,
+    fan: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16l-3 6H7L4 4z"/><line x1="12" y1="10" x2="12" y2="14"/><rect x="9" y="14" width="6" height="7" rx="1"/></svg>`,
+    microwave: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><rect x="4" y="7.5" width="12" height="9" rx="1"/><line x1="19" y1="8" x2="19" y2="10"/><circle cx="19" cy="13" r="0.9" fill="currentColor" stroke="none"/></svg>`,
+    box: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>`
+  };
   const categoryIcon = (cat) => {
     const c = String(cat || "");
-    if (/غسال/.test(c)) return "🧺";
-    if (/ثلاج|فريزر/.test(c)) return "🧊";
-    if (/سخان/.test(c)) return "🔥";
-    if (/كمبروسر|كمبريسور/.test(c)) return "⚙️";
-    if (/تكييف|مكيف/.test(c)) return "❄️";
-    if (/بوتاجاز|فرن/.test(c)) return "🍳";
-    if (/شفاط/.test(c)) return "💨";
-    if (/مايكروويف/.test(c)) return "📡";
-    if (/غلاي|سخّان فوري/.test(c)) return "♨️";
-    return "📦";
+    if (/غسال/.test(c)) return CATEGORY_ICONS.washer;
+    if (/ثلاج|فريزر/.test(c)) return CATEGORY_ICONS.fridge;
+    if (/سخان|غلاي/.test(c)) return CATEGORY_ICONS.heater;
+    if (/كمبروسر|كمبريسور/.test(c)) return CATEGORY_ICONS.compressor;
+    if (/تكييف|مكيف/.test(c)) return CATEGORY_ICONS.ac;
+    if (/بوتاجاز|فرن/.test(c)) return CATEGORY_ICONS.oven;
+    if (/شفاط/.test(c)) return CATEGORY_ICONS.fan;
+    if (/مايكروويف/.test(c)) return CATEGORY_ICONS.microwave;
+    return CATEGORY_ICONS.box;
   };
   const rows = (key) => {
     try { return JSON.parse(localStorage.getItem(key) || "[]"); }
@@ -248,6 +259,7 @@
   window.showAllParts = function () {
     state.parts = true;
     state.partBucket = "";
+    state.partCategory = "";
     $("partSearch")?.classList.remove("hidden");
     renderParts();
   };
@@ -255,6 +267,15 @@
   window.showLowStockParts = function () {
     state.parts = true;
     state.partBucket = "low";
+    state.partCategory = "";
+    $("partSearch")?.classList.add("hidden");
+    renderParts();
+  };
+
+  window.showPartsCategory = function (cat) {
+    state.parts = true;
+    state.partBucket = "";
+    state.partCategory = cat;
     $("partSearch")?.classList.add("hidden");
     renderParts();
   };
@@ -262,6 +283,7 @@
   window.hideAllParts = function () {
     state.parts = false;
     state.partBucket = "";
+    state.partCategory = "";
     if ($("partSearch")) $("partSearch").classList.add("hidden");
     renderParts();
   };
@@ -279,7 +301,7 @@
       });
       const low = all.filter(p => (+p.qty || 0) <= (+p.min || 0)).length;
       const cards = Object.entries(cats).slice(0, 6).map(([k,n]) =>
-        `<div class="simple-stat"><span>${categoryIcon(k)}</span><b>${esc2(k)}</b><strong>${n}</strong><small>قطعة</small></div>`
+        `<button type="button" class="simple-stat" onclick="showPartsCategory('${k.replace(/'/g,"\\'")}')"><span>${categoryIcon(k)}</span><b>${esc2(k)}</b><strong>${n}</strong><small>قطعة</small></button>`
       ).join("");
 
       el.innerHTML = `
@@ -296,13 +318,15 @@
 
     const q = ($("partSearch")?.value || "").toLowerCase().trim();
     const bucket = state.partBucket;
+    const cat = state.partCategory;
     const filtered = all.filter(p => {
       const ok = [p.name,p.code,p.location,p.category].filter(Boolean).join(" ").toLowerCase().includes(q);
-      if (bucket === "low") return ok && (+p.qty || 0) <= (+p.min || 0);
+      if (bucket === "low" && (+p.qty || 0) > (+p.min || 0)) return false;
+      if (cat && (p.category || "أخرى") !== cat) return false;
       return ok;
     });
 
-    const listTitle = bucket === "low" ? "أصناف عند الحد الأدنى أو أقل" : "كل القطع";
+    const listTitle = bucket === "low" ? "أصناف عند الحد الأدنى أو أقل" : cat ? esc2(cat) : "كل القطع";
 
     el.innerHTML = `
       <div class="simple-list-head">
@@ -380,7 +404,7 @@
   }
 
   function renderRouteSummary(all) {
-    const future = all.filter(r => r.visit && !r.closed && r.status !== "ملغي")
+    const future = all.filter(r => r.visit && !orderIsCompleted(r) && r.status !== "ملغي" && !orderIsOverdue(r))
       .sort((a,b) => new Date(a.visit) - new Date(b.visit));
     if (!future.length) return `<div class="simple-empty">📅 لا توجد مواعيد مجدولة قادمة.</div>`;
 
@@ -390,33 +414,37 @@
       (groups[dk] ||= []).push(r);
     });
 
+    const centerVillageBlock = (rs) => {
+      const byCenter = {};
+      rs.forEach(r => { const loc = locationForOrder(r); (byCenter[loc.center] ||= []).push(r); });
+      return Object.entries(byCenter).map(([center,cr]) => {
+        const byVillage = {};
+        cr.forEach(r => { const loc = locationForOrder(r); (byVillage[loc.village] ||= []).push(r); });
+        return `<div class="route-center"><b>📍 ${esc2(center)}</b>
+          ${Object.entries(byVillage).map(([village,vr]) => `
+            <div class="route-village">
+              <div class="route-village-head"><span>${esc2(village)}</span><strong>${vr.length}</strong></div>
+              ${vr.map(r=>`<a href="request.html?id=${r.id}" class="route-order-link">${esc2(r.no)} — ${esc2(customerName(r.customerId))}</a>`).join("")}
+            </div>`).join("")}
+        </div>`;
+      }).join("");
+    };
+
     const dates = Object.keys(groups).sort().slice(0, 4);
     return `<div class="route-summary">
       <div class="simple-summary-title"><b>📅 خط السير القادم</b><span>${future.length} موعد</span></div>
       ${dates.map(dk => {
-        const byCenter = {};
-        groups[dk].forEach(r => {
+        const dayOrders = groups[dk];
+        const cityOrders = [], villageOrders = [];
+        dayOrders.forEach(r => {
           const loc = locationForOrder(r);
-          const key = loc.center;
-          (byCenter[key] ||= []).push(r);
+          (villageGroupOf(loc.center, loc.village) === "city" ? cityOrders : villageOrders).push(r);
         });
         const d = new Date(dk + "T00:00:00");
         return `<div class="route-day">
-          <div class="route-day-title"><b>${d.toLocaleDateString("ar-EG",{weekday:"long",day:"2-digit",month:"2-digit"})}</b><span>${groups[dk].length} أمر</span></div>
-          ${Object.entries(byCenter).map(([center,rs]) => {
-            const byVillage = {};
-            rs.forEach(r => {
-              const loc = locationForOrder(r);
-              (byVillage[loc.village] ||= []).push(r);
-            });
-            return `<div class="route-center"><b>📍 ${esc2(center)}</b>
-              ${Object.entries(byVillage).map(([village,vr]) => `
-                <div class="route-village">
-                  <div class="route-village-head"><span>${esc2(village)}</span><strong>${vr.length}</strong></div>
-                  ${vr.map(r=>`<a href="request.html?id=${r.id}" class="route-order-link">${esc2(r.no)} — ${esc2(customerName(r.customerId))}</a>`).join("")}
-                </div>`).join("")}
-            </div>`;
-          }).join("")}
+          <div class="route-day-title"><b>${d.toLocaleDateString("ar-EG",{weekday:"long",day:"2-digit",month:"2-digit"})}</b><span>${dayOrders.length} أمر</span></div>
+          ${cityOrders.length ? `<div class="route-group"><div class="route-group-title">🏙️ داخل المركز <span>${cityOrders.length}</span></div>${centerVillageBlock(cityOrders)}</div>` : ""}
+          ${villageOrders.length ? `<div class="route-group"><div class="route-group-title">🌾 القرى <span>${villageOrders.length}</span></div>${centerVillageBlock(villageOrders)}</div>` : ""}
         </div>`;
       }).join("")}
     </div>`;

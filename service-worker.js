@@ -1,4 +1,4 @@
-const CACHE_NAME = "workshop-v11-3-3-auto-update-pwa";
+const CACHE_NAME = "workshop-v11-4-0-auto-update-pwa";
 const CORE_FILES = [
   "./",
   "./index.html",
