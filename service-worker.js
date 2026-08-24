@@ -1,4 +1,4 @@
-const CACHE_NAME = "workshop-v11-6-0-auto-update-pwa";
+const CACHE_NAME = "workshop-v11-7-0-auto-update-pwa";
 importScripts("./notif-shared.js");
 const CORE_FILES = [
   "./",

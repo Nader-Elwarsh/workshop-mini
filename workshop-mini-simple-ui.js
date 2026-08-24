@@ -120,6 +120,36 @@
     return requestRows().some(r => r.deviceId === did && orderIsWorkshop(r) && !orderIsCompleted(r));
   }
 
+  function customerCityGroup(c) {
+    const a = c.mainAddress || {};
+    return (typeof villageGroupOf === "function" ? villageGroupOf(a.center || "", a.village || "") : "village") === "city" ? "city" : "village";
+  }
+
+  function customerHasUnpaid(cid) {
+    return requestRows().some(r => r.customerId === cid && !r.closed && Math.max(0, (+r.total || 0) - (+r.deposit || 0)) > 0);
+  }
+
+  function lastOrderTime(list) {
+    const dates = list.map(r => new Date(r.closedAt || r.visit || r.createdAt || 0).getTime()).filter(t => !Number.isNaN(t) && t > 0);
+    return dates.length ? Math.max(...dates) : null;
+  }
+
+  const STALE_DAYS = 60;
+
+  function customerIsStale(c) {
+    const orders = requestRows().filter(r => r.customerId === c.id);
+    if (!orders.length) return false;
+    const active = orders.some(r => !orderIsCompleted(r) && r.status !== "ملغي");
+    if (active) return false;
+    const last = lastOrderTime(orders);
+    if (last === null) return false;
+    return (Date.now() - last) / 86400000 >= STALE_DAYS;
+  }
+
+  function deviceIsRecurring(d) {
+    return requestRows().filter(r => r.deviceId === d.id).length >= 2;
+  }
+
   /* ---------- العملاء ---------- */
   window.showAllCustomers = function () {
     state.customers = true;
@@ -148,6 +178,10 @@
     if (bucket === "workshop") return workshop;
     if (bucket === "completed") return orders.length > 0 && !active && orders.some(r => orderIsCompleted(r));
     if (bucket === "none") return orders.length === 0;
+    if (bucket === "city") return customerCityGroup(c) === "city";
+    if (bucket === "village") return customerCityGroup(c) === "village";
+    if (bucket === "stale") return customerIsStale(c);
+    if (bucket === "unpaid") return customerHasUnpaid(c.id);
     return true;
   }
 
@@ -157,18 +191,26 @@
     const all = customerRows();
 
     if (!state.customers) {
-      const active = all.filter(c => customerBucketMatch(c, "active")).length;
-      const workshop = all.filter(c => customerBucketMatch(c, "workshop")).length;
-      const completed = all.filter(c => customerBucketMatch(c, "completed")).length;
-      const none = all.filter(c => customerBucketMatch(c, "none")).length;
+      const cnt = (b) => all.filter(c => customerBucketMatch(c, b)).length;
       el.innerHTML = `
         <section class="simple-home">
           <div class="simple-summary-title"><b>👤 العملاء</b><span>${all.length} إجمالي</span></div>
+          <div class="bucket-group-label">حسب الحالة</div>
           <div class="simple-stat-grid">
-            ${simpleButton("لديه أمر شغل", "🛠️", "showCustomerBucket('active')", "")}
-            ${simpleButton("لديه جهاز في الورشة", "🏭", "showCustomerBucket('workshop')", "")}
-            ${simpleButton("أوامره مكتملة", "✅", "showCustomerBucket('completed')", "")}
-            ${simpleButton("ليس لديه أمر شغل", "👤", "showCustomerBucket('none')", "")}
+            ${simpleButton(`عليه أمر مفتوح (${cnt("active")})`, "🛠️", "showCustomerBucket('active')", "")}
+            ${simpleButton(`جهاز في الورشة (${cnt("workshop")})`, "🏭", "showCustomerBucket('workshop')", "")}
+            ${simpleButton(`كل أوامره مكتملة (${cnt("completed")})`, "✅", "showCustomerBucket('completed')", "")}
+            ${simpleButton(`بدون أي أمر (${cnt("none")})`, "🆕", "showCustomerBucket('none')", "")}
+          </div>
+          <div class="bucket-group-label">حسب المنطقة</div>
+          <div class="simple-stat-grid">
+            ${simpleButton(`عملاء المدن (${cnt("city")})`, "🏙️", "showCustomerBucket('city')", "")}
+            ${simpleButton(`عملاء القرى (${cnt("village")})`, "🌾", "showCustomerBucket('village')", "")}
+          </div>
+          <div class="bucket-group-label">متابعة</div>
+          <div class="simple-stat-grid">
+            ${simpleButton(`لم يتردد من فترة (${cnt("stale")})`, "⏳", "showCustomerBucket('stale')", "")}
+            ${simpleButton(`متبقي غير محصل (${cnt("unpaid")})`, "💰", "showCustomerBucket('unpaid')", "")}
           </div>
           <div class="simple-main-actions">
             ${simpleButton("كل العملاء", "👥", "showAllCustomers()", "primary-tile")}
@@ -186,7 +228,11 @@
         .filter(Boolean).join(" ").toLowerCase();
       return !q || text.includes(q);
     });
-    const title = {active:"لديه أمر شغل", workshop:"لديه جهاز في الورشة", completed:"أوامره مكتملة", none:"ليس لديه أمر شغل"}[bucket] || "كل العملاء";
+    const title = {
+      active: "عليه أمر مفتوح حاليًا", workshop: "لديه جهاز في الورشة", completed: "كل أوامره مكتملة",
+      none: "بدون أي أمر شغل", city: "🏙️ عملاء المدن", village: "🌾 عملاء القرى",
+      stale: "⏳ لم يتردد من فترة", unpaid: "💰 عليه متبقي غير محصل"
+    }[bucket] || "كل العملاء";
     el.innerHTML = `
       <div class="simple-list-head"><b>${title}</b><button type="button" class="secondary small-btn" onclick="hideAllCustomers()">رجوع للملخص</button></div>
       ${filtered.length ? filtered.map(c => {
@@ -225,6 +271,8 @@
     if (bucket === "workshop") return workshop;
     if (bucket === "completed") return orders.length > 0 && !active && orders.some(r => orderIsCompleted(r));
     if (bucket === "none") return orders.length === 0;
+    if (bucket === "recurring") return deviceIsRecurring(d);
+    if (bucket.indexOf("type:") === 0) return (d.type || "") === bucket.slice(5);
     return true;
   }
 
@@ -233,13 +281,25 @@
     if (!el) return;
     const all = deviceRows();
     if (!state.devices) {
+      const cnt = (b) => all.filter(d => deviceBucketMatch(d, b)).length;
+      const types = [...new Set(all.map(d => d.type).filter(Boolean))];
       el.innerHTML = `<section class="simple-home"><div class="simple-summary-title"><b>🔧 الأجهزة</b><span>${all.length} إجمالي</span></div>
+        <div class="bucket-group-label">حسب الحالة</div>
         <div class="simple-stat-grid">
-          ${simpleButton("لديه أمر شغل", "🛠️", "showDeviceBucket('active')", "")}
-          ${simpleButton("موجود في الورشة", "🏭", "showDeviceBucket('workshop')", "")}
-          ${simpleButton("أمره مكتمل", "✅", "showDeviceBucket('completed')", "")}
-          ${simpleButton("ليس لديه أمر شغل", "🔧", "showDeviceBucket('none')", "")}
-        </div><div class="simple-main-actions">${simpleButton("كل الأجهزة", "🔧", "showAllDevices()", "primary-tile")}</div></section>`;
+          ${simpleButton(`عليه أمر مفتوح (${cnt("active")})`, "🛠️", "showDeviceBucket('active')", "")}
+          ${simpleButton(`موجود في الورشة (${cnt("workshop")})`, "🏭", "showDeviceBucket('workshop')", "")}
+          ${simpleButton(`كل أوامره مكتملة (${cnt("completed")})`, "✅", "showDeviceBucket('completed')", "")}
+          ${simpleButton(`بدون أي أمر (${cnt("none")})`, "🆕", "showDeviceBucket('none')", "")}
+        </div>
+        <div class="bucket-group-label">متابعة</div>
+        <div class="simple-stat-grid">
+          ${simpleButton(`متكرر الأعطال (${cnt("recurring")})`, "🔁", "showDeviceBucket('recurring')", "")}
+        </div>
+        ${types.length ? `<div class="bucket-group-label">حسب النوع</div>
+        <div class="simple-stat-grid">
+          ${types.map(t => simpleButton(`${esc2(t)} (${cnt("type:"+t)})`, categoryIcon(t), `showDeviceBucket('type:${esc2(t)}')`, "")).join("")}
+        </div>` : ""}
+        <div class="simple-main-actions">${simpleButton("كل الأجهزة", "🔧", "showAllDevices()", "primary-tile")}</div></section>`;
       return;
     }
     const q = ($("deviceSearch")?.value || "").toLowerCase().trim();
@@ -250,7 +310,8 @@
       const text = [c.name,c.phone,d.type,d.category,d.brand,d.model,d.desc,addressText(c.mainAddress||{}),addressText(c.extraAddress||{})].filter(Boolean).join(" ").toLowerCase();
       return !q || text.includes(q);
     });
-    const title = {active:"لديه أمر شغل", workshop:"موجود في الورشة", completed:"أمره مكتمل", none:"ليس لديه أمر شغل"}[bucket] || "كل الأجهزة";
+    const title = bucket.indexOf("type:") === 0 ? `📦 ${bucket.slice(5)}` :
+      ({active:"عليه أمر مفتوح حاليًا", workshop:"موجود في الورشة", completed:"كل أوامره مكتملة", none:"بدون أي أمر شغل", recurring:"🔁 متكرر الأعطال"}[bucket] || "كل الأجهزة");
     el.innerHTML = `<div class="simple-list-head"><b>${title}</b><button type="button" class="secondary small-btn" onclick="hideAllDevices()">رجوع للملخص</button></div>
       ${filtered.length ? filtered.map(d => `<div class="simple-record"><div class="simple-record-icon">🔧</div><div class="simple-record-main"><a href="device.html?id=${d.id}"><b>${esc2(d.type)} — ${esc2(d.brand)}</b></a><span>${esc2(d.category||"—")} • ${esc2(d.model||"بدون موديل")}</span><small>👤 ${esc2(customerName(d.customerId))}${activeOrdersForDevice(d.id).length ? ` • 🔴 ${activeOrdersForDevice(d.id).length} أمر فعال` : ""}${hasWorkshopDevice(d.id) ? " • 🏭 في الورشة" : ""}</small></div><div class="simple-record-actions"><a class="secondary small-btn" href="device.html?id=${d.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteDeviceRecord('${d.id}')">حذف</button></div></div>`).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
   };
@@ -339,7 +400,7 @@
           <div class="simple-record-main">
             <a href="part.html?id=${p.id}"><b>${esc2(p.name)}</b></a>
             <span>${esc2(p.category || "—")} • ${esc2(p.code || "بدون كود")}</span>
-            <small>📍 ${esc2(p.location || "—")} • شراء ${(+p.buy||0).toFixed(2)} ج • استخدام ${(+p.use||0).toFixed(2)} ج</small>
+            <small>📍 ${esc2(p.location || "—")} • شراء ${(+p.buy||0).toFixed(2)} ج • استخدام ${(+p.use||0).toFixed(2)} ج • 📈 ${((+p.use||0)>0?(((+p.use||0)-(+p.buy||0))/(+p.use||0)*100):0).toFixed(1)}%</small>
           </div>
           <span class="simple-qty ${(+p.qty||0) <= (+p.min||0) ? "low" : ""}">${+p.qty||0}</span>
         </div>`).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
