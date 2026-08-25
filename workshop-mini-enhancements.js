@@ -119,7 +119,6 @@
           <div class="kv"><b>🔧 عدد الأجهزة</b>${ds.length}</div>
           <div class="kv"><b>🛠️ عدد أوامر الشغل</b>${rs.length}</div>
         </div>
-        ${typeof customerAccountSummary === "function" && typeof accountSummaryHtml === "function" ? accountSummaryHtml(customerAccountSummary(c.id), "💰 حساب العميل") : ""}
       </div>
 
       <h2>🔧 الأجهزة</h2>
@@ -153,7 +152,6 @@
           </div>
         </div>`;
       }).join("") : "<div class='item'>لا توجد أوامر.</div>"}
-      ${typeof printShareBar === "function" ? printShareBar("Customer", c.id) : ""}
     `;
   };
 

@@ -466,10 +466,38 @@
     return `${x.center}${x.village && x.village !== "بدون قرية" ? " • " + x.village : ""}`;
   }
 
+  // يحسب ألوان مناسبة (خلفية/نص/تفاصيل) بناءً على لون مخصص يختاره المستخدم، عشان النص يفضل مقروء فوق أي لون.
+  function rpThemeVars(hex) {
+    let h = (hex || "").replace("#", "");
+    if (h.length === 3) h = h.split("").map(c => c + c).join("");
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) h = "17181b";
+    const r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
+    const yiq = (r*299 + g*587 + b*114) / 1000;
+    const dark = yiq < 150;
+    return {
+      bg: "#"+h,
+      fg: dark ? "#f2f3f5" : "#18212b",
+      muted: dark ? "#9aa0a8" : "#687583",
+      border: dark ? "rgba(255,255,255,.12)" : "rgba(0,0,0,.1)",
+      link: dark ? "#4d9fff" : "#17324d"
+    };
+  }
+
+  function rpWrapAttrs() {
+    const s = (typeof settings === "function" ? settings() : {}) || {};
+    const theme = s.routeTheme || "dark";
+    if (theme === "custom") {
+      const v = rpThemeVars(s.routeThemeColor);
+      const style = `--rp-bg:${v.bg};--rp-fg:${v.fg};--rp-muted:${v.muted};--rp-border:${v.border};--rp-link:${v.link}`;
+      return ` class="rp-wrap rp-theme-custom" style="${style}"`;
+    }
+    return ` class="rp-wrap rp-theme-${theme}"`;
+  }
+
   function renderRouteSummary(all) {
     const future = all.filter(r => r.visit && !orderIsCompleted(r) && r.status !== "ملغي" && !orderIsOverdue(r))
       .sort((a,b) => new Date(a.visit) - new Date(b.visit));
-    if (!future.length) return `<div class="simple-empty">📅 لا توجد مواعيد مجدولة قادمة.</div>`;
+    if (!future.length) return `<div${rpWrapAttrs()}><div class="rp-empty">📅 لا توجد مواعيد مجدولة قادمة.</div></div>`;
 
     const groups = {};
     future.forEach(r => {
@@ -483,19 +511,19 @@
       return Object.entries(byCenter).map(([center,cr]) => {
         const byVillage = {};
         cr.forEach(r => { const loc = locationForOrder(r); (byVillage[loc.village] ||= []).push(r); });
-        return `<div class="route-center"><b>📍 ${esc2(center)}</b>
+        return `<div class="rp-center"><b>📍 ${esc2(center)}</b>
           ${Object.entries(byVillage).map(([village,vr]) => `
-            <div class="route-village">
-              <div class="route-village-head"><span>${esc2(village)}</span><strong>${vr.length}</strong></div>
-              ${vr.map(r=>`<a href="request.html?id=${r.id}" class="route-order-link">${esc2(r.no)} — ${esc2(customerName(r.customerId))}</a>`).join("")}
+            <div class="rp-village">
+              <div class="rp-village-head"><span>${esc2(village)}</span><strong>${vr.length}</strong></div>
+              ${vr.map(r=>`<a href="request.html?id=${r.id}" class="rp-order-link">${esc2(r.no)} — ${esc2(customerName(r.customerId))}</a>`).join("")}
             </div>`).join("")}
         </div>`;
       }).join("");
     };
 
     const dates = Object.keys(groups).sort().slice(0, 4);
-    return `<div class="route-summary">
-      <div class="simple-summary-title"><b>📅 خط السير القادم</b><span>${future.length} موعد</span></div>
+    return `<div${rpWrapAttrs()}>
+      <div class="rp-title"><b>📅 خط السير القادم</b><span>${future.length} موعد</span></div>
       ${dates.map(dk => {
         const dayOrders = groups[dk];
         const cityOrders = [], villageOrders = [];
@@ -504,10 +532,10 @@
           (villageGroupOf(loc.center, loc.village) === "city" ? cityOrders : villageOrders).push(r);
         });
         const d = new Date(dk + "T00:00:00");
-        return `<div class="route-day">
-          <div class="route-day-title"><b>${d.toLocaleDateString("ar-EG",{weekday:"long",day:"2-digit",month:"2-digit"})}</b><span>${dayOrders.length} أمر</span></div>
-          ${cityOrders.length ? `<div class="route-group"><div class="route-group-title">🏙️ داخل المركز <span>${cityOrders.length}</span></div>${centerVillageBlock(cityOrders)}</div>` : ""}
-          ${villageOrders.length ? `<div class="route-group"><div class="route-group-title">🌾 القرى <span>${villageOrders.length}</span></div>${centerVillageBlock(villageOrders)}</div>` : ""}
+        return `<div class="rp-day">
+          <div class="rp-day-title"><b>${d.toLocaleDateString("ar-EG",{weekday:"long",day:"2-digit",month:"2-digit"})}</b><span>${dayOrders.length} أمر</span></div>
+          ${cityOrders.length ? `<div class="rp-group"><div class="rp-group-title">🏙️ داخل المركز <span>${cityOrders.length}</span></div>${centerVillageBlock(cityOrders)}</div>` : ""}
+          ${villageOrders.length ? `<div class="rp-group"><div class="rp-group-title">🌾 القرى <span>${villageOrders.length}</span></div>${centerVillageBlock(villageOrders)}</div>` : ""}
         </div>`;
       }).join("")}
     </div>`;
