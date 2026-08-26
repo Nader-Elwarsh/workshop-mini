@@ -4,236 +4,18 @@ function localDateKey(date){return `${date.getFullYear()}-${String(date.getMonth
 function orderNo(date=new Date()){let y=String(date.getFullYear()).slice(-2),m=date.getMonth()+1,d=date.getDate(),prefix=`W${y}-${m}-${d}-`,ymd=localDateKey(date);let n=arr(K.r).filter(x=>x.createdAt&&localDateKey(new Date(x.createdAt))===ymd).length+1;while(arr(K.r).some(x=>x.no===prefix+n))n++;return prefix+n}
 function normalizeOrderNumbers(){let rs=arr(K.r),used=new Set(),groups={};rs.forEach(r=>{let dt=r.createdAt?new Date(r.createdAt):new Date(),ymd=localDateKey(dt);(groups[ymd]??=[]).push(r)});Object.entries(groups).forEach(([ymd,list])=>{let [yy,mm,dd]=ymd.split("-").map(Number),prefix=`W${String(yy).slice(-2)}-${mm}-${dd}-`;list.forEach((r,i)=>{let n=prefix+(i+1);while(used.has(n))n=prefix+(++i+1);r.no=n;used.add(n)})});put(K.r,rs)}
 
-const K={c:"wf_c",d:"wf_d",r:"wf_r",p:"wf_p",s:"wf_s",m:"wf_m",e:"wf_e",tr:"wf_tr",tasks:"wf_tasks"};
-const def={centers:["مطاي","بني مزار"],villages:{مطاي:["مطاي البلد","أبو عزيز","بردنوها","منبال","أبوان","إبوان","حلوة","سيلة الشرقية","سيلة الغربية","عزبة بطرس","عزبة أبو شحاته"],"بني مزار":[]},types:{غسالات:["هاف أوتوماتيك","فوق أوتوماتيك","أمامي أوتوماتيك"],ثلاجات:["عادية","نوفروست","ديب فريزر"],تكييفات:["سبليت","شباك"],سخانات:["كهرباء","غاز"],كولديرات:["كولدير"],أجهزة_أخرى:["عام"]},brands:["Fresh","Unionaire","Tornado","Beko","LG","Samsung","Sharp","Ariston","Zanussi","Whirlpool","Indesit","White Point","Kiriazi","Ideal","Fagor","Daewoo","Hitachi","Panasonic","Carrier","Midea","Haier","Gree","TCL","فريش","توشيبا العربى","كريازى"],partCats:["ثلاجات وفريزرات","غسالات","تكييف","سخانات","كهرباء وإلكترونيات","مواتير","كمبروسرات","أخرى"]};
-function get(k,f=[]){try{let x=JSON.parse(localStorage.getItem(k));return x??f}catch{return f}} function put(k,v){localStorage.setItem(k,JSON.stringify(v))}
-function settings(){let s=get(K.s,null);if(!s)s={};let base=JSON.parse(JSON.stringify(def));for(const k of Object.keys(base)){if(Array.isArray(base[k]))s[k]=Array.isArray(s[k])?s[k]:base[k];else if(base[k]&&typeof base[k]==="object")s[k]=s[k]&&typeof s[k]==="object"?s[k]:base[k]}s.orderStatuses=s.orderStatuses||["جديد","تم التواصل","مجدول","جاري الفحص","انتظار موافقة العميل","تحت الإصلاح","مكتمل","ملغي"];s.priorities=s.priorities||["عادية","عاجلة","أولوية عالية"];s.executionPlaces=s.executionPlaces||["عند العميل","الورشة"];s.workshopStatuses=s.workshopStatuses||["غير مطلوب","مطلوب السحب","تم السحب","استلام الورشة","تحت الإصلاح","جاهز للتسليم","تم التسليم"];s.paymentStatuses=s.paymentStatuses||["غير مكتمل","تم الدفع بالكامل"];s.units=s.units||["قطعة","متر","كيلو","لتر","مجموعة"];s.addressTypes=s.addressTypes||["العنوان الأساسي","العنوان الإضافي"];s.orderTags=s.orderTags||[];s.villageGroups=s.villageGroups||{};s.expenseCategories=s.expenseCategories||["وقود ومواصلات","صيانة عدة وأدوات","إيجار وفواتير","أخرى"];put(K.s,s);return s}
-function duplicateCustomerByPhone(phone,excludeId){let normalized=String(phone||"").replace(/\s+/g,"").trim();if(!normalized)return null;return arr(K.c).find(c=>String(c.id)!==String(excludeId||"")&&String(c.phone||"").replace(/\s+/g,"").trim()===normalized)||null}
-function arr(k){return get(k,[])} function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))} function id(){return crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)}
+/* K, get, put, arr, esc, id, settings, duplicateCustomerByPhone: منقولة لملف
+   shared-data.js (لازم يتحمّل قبل app.js في كل صفحة) عشان تبقى نسخة واحدة
+   يستخدمها كل الملفات بدل ما تتكرر في أكتر من مكان. */
 function toggle(x){document.getElementById(x)?.classList.toggle("hidden")}
 const QUICK_ADD_LABELS={quickCustomerBox:"➕ عميل",quickDeviceBox:"➕ جهاز",quickDeviceCustomerBox:"➕ عميل",qoCustomerBox:"➕ عميل",qoDeviceBox:"➕ جهاز"};
 function toggleQuickAdd(boxId){let box=document.getElementById(boxId);if(!box)return;let btn=document.querySelector(`[data-opens="${boxId}"]`);let opening=box.classList.contains("hidden");box.classList.toggle("hidden");if(btn){btn.textContent=opening?"➖ إلغاء الإضافة":(QUICK_ADD_LABELS[boxId]||"➕ إضافة");btn.classList.toggle("quick-add-open",opening)}if(opening)setTimeout(()=>box.scrollIntoView({behavior:"smooth",block:"nearest"}),50)}
 function closeQuickAdd(boxId){let box=document.getElementById(boxId);if(!box)return;box.classList.add("hidden");let btn=document.querySelector(`[data-opens="${boxId}"]`);if(btn){btn.textContent=QUICK_ADD_LABELS[boxId]||"➕ إضافة";btn.classList.remove("quick-add-open")}}
 
-/* ---------------------------------------------------------------------
-   💵 الخزنة المستقلة:
-   الخزنة هنا = درج نقدي مستقل فقط.
-   لا تُضاف تحصيلات أوامر الشغل ولا تُخصم مصاريف التشغيل من رصيدها تلقائيًا.
-   يمكن عرض ملخص التشغيل للمتابعة فقط، لكنه لا يدخل في رصيد الخزنة.
---------------------------------------------------------------------- */
-function treasuryEntries(){return arr(K.tr).filter(x=>!x.deleted)}
-function treasuryBalance(){return treasuryEntries().reduce((a,x)=>a+(x.type==="in"?(+x.amount||0):-(+x.amount||0)),0)}
-function upsertTreasuryEntry(refKey,data){return null}
-function removeTreasuryEntry(refKey){return false}
-function syncTreasuryForOrderDeposit(order){return null}
-function syncTreasuryForOrderClose(order,collected){return null}
-function syncTreasuryForExpense(e){return null}
-function addTreasuryManual(type){
-  let amountEl=document.getElementById("trAmount"),reasonEl=document.getElementById("trReason"),
-      dateEl=document.getElementById("trDate"),timeEl=document.getElementById("trTime"),
-      personEl=document.getElementById("trPerson"),placeEl=document.getElementById("trPlace"),
-      categoryEl=document.getElementById("trCategory"),noteEl=document.getElementById("trNote");
-  let amount=+amountEl.value||0,reason=(reasonEl.value||"").trim(),
-      date=dateEl.value||localDateKey(new Date()),time=timeEl.value||new Date().toTimeString().slice(0,5);
-  if(amount<=0)return alert("أدخل مبلغ صحيح.");
-  if(!reason)return alert("اكتب سبب الحركة.");
-  let entry={
-    id:id(),refKey:null,manualOverride:true,deleted:false,type,amount,date,time,
-    reason,counterparty:(personEl?.value||"").trim(),place:(placeEl?.value||"").trim(),
-    category:categoryEl?.value||"أخرى",note:(noteEl?.value||"").trim(),
-    source:"cash-drawer",createdAt:new Date().toISOString()
-  };
-  put(K.tr,arr(K.tr).concat(entry));renderTreasury();
-}
-function saveOpeningBalance(){
-  let el=document.getElementById("trOpening"),amount=Math.abs(+el.value||0),
-      dateEl=document.getElementById("trOpeningDate"),date=dateEl?.value||localDateKey(new Date());
-  let a=arr(K.tr),existing=a.find(x=>x.refKey==="opening-balance"&&!x.deleted);
-  if(existing){existing.amount=amount;existing.date=date;existing.type="in";existing.reason="رصيد افتتاحي";existing.source="cash-drawer"}
-  else a.push({id:id(),refKey:"opening-balance",manualOverride:true,deleted:false,type:"in",amount,date,time:"00:00",reason:"رصيد افتتاحي",category:"رصيد افتتاحي",source:"cash-drawer",createdAt:new Date().toISOString()});
-  put(K.tr,a);renderTreasury();
-}
-function editTreasuryEntry(entryId){
-  let a=arr(K.tr),e=a.find(x=>x.id===entryId);if(!e)return;
-  let newAmount=prompt("المبلغ:",e.amount);if(newAmount===null)return;
-  let newReason=prompt("سبب الحركة:",e.reason);if(newReason===null)return;
-  let newPerson=prompt("لمن / من؟:",e.counterparty||"");if(newPerson===null)return;
-  let newPlace=prompt("فين / المكان؟:",e.place||"");if(newPlace===null)return;
-  e.amount=Math.abs(+newAmount)||0;e.reason=(newReason||"").trim()||e.reason;
-  e.counterparty=(newPerson||"").trim();e.place=(newPlace||"").trim();e.manualOverride=true;
-  put(K.tr,a);renderTreasury();
-}
-function deleteTreasuryEntry(entryId){
-  if(!confirm("حذف هذه الحركة من كشف الخزنة؟"))return;
-  let a=arr(K.tr),idx=a.findIndex(x=>x.id===entryId);if(idx<0)return;
-  if(a[idx].refKey==="opening-balance"){alert("رصيد الافتتاح يُعدل من قسم الرصيد الافتتاحي ولا يُحذف من هنا.");return}
-  a.splice(idx,1);put(K.tr,a);renderTreasury();
-}
-function operationalTreasurySummary(){
-  let deposits=arr(K.r).reduce((a,x)=>a+(+x.deposit||0),0);
-  let finalCollections=arr(K.r).filter(x=>x.closed||x.paid).reduce((a,x)=>a+Math.max(0,(+x.total||0)-(+x.deposit||0)),0);
-  let expenses=arr(K.e).reduce((a,x)=>a+(+x.amount||0),0);
-  return {deposits,finalCollections,orderCollections:deposits+finalCollections,expenses};
-}
-function renderTreasury(){
-  let el=document.getElementById("treasuryPage");if(!el)return;
-  let balance=treasuryBalance();
-  let list=treasuryEntries().sort((a,b)=>new Date((b.date||"")+"T"+(b.time||"00:00"))-new Date((a.date||"")+"T"+(a.time||"00:00"))||new Date(b.createdAt)-new Date(a.createdAt));
-  let opening=arr(K.tr).find(x=>x.refKey==="opening-balance"&&!x.deleted);
-  let op=operationalTreasurySummary();
-  let today=localDateKey(new Date());
-  el.innerHTML=`
-    <div class="treasury-balance ${balance<0?"negative":""}">
-      <span>رصيد درج الخزنة الحالي</span><b>${balance.toFixed(2)} ج</b>
-    </div>
-    <div class="hint" style="margin:10px 0">🔒 هذا الرصيد مستقل تمامًا عن حسابات أوامر الشغل وقطع الغيار ومصاريف التشغيل. أي مبلغ هنا لا يتغير إلا بحركة خزنة يدوية أو الرصيد الافتتاحي.</div>
-    <div class="treasury-actions">
-      <div class="form-grid">
-        <label>المبلغ<input id="trAmount" type="number" step="0.01" min="0" placeholder="0.00"></label>
-        <label>التاريخ<input id="trDate" type="date" value="${today}"></label>
-        <label>الوقت<input id="trTime" type="time" value="${new Date().toTimeString().slice(0,5)}"></label>
-        <label>النوع<select id="trCategory"><option>شخصي</option><option>تشغيل</option><option>سلفة</option><option>تحويل</option><option>أخرى</option></select></label>
-        <label>لمن / من؟<input id="trPerson" placeholder="مثال: أحمد، المورد، نفسي"></label>
-        <label>فين / المكان؟<input id="trPlace" placeholder="مثال: البيت، الورشة، البنك"></label>
-        <label class="wide">السبب<input id="trReason" placeholder="مثال: سحب شخصي، فلوس وصلت، دفعت لمحمد..."></label>
-        <label class="wide">تفاصيل إضافية<input id="trNote" placeholder="اختياري"></label>
-      </div>
-      <div class="actions">
-        <button type="button" class="primary" onclick="addTreasuryManual('in')">➕ وارد</button>
-        <button type="button" class="secondary danger-btn" onclick="addTreasuryManual('out')">➖ صرف</button>
-      </div>
-    </div>
-    <details class="expense-panel">
-      <summary>⚙️ الرصيد الافتتاحي${opening?` (${(+opening.amount||0).toFixed(2)} ج)`: ""}</summary>
-      <div class="form-grid">
-        <label class="wide">الرصيد الافتتاحي (المبلغ الموجود فعليًا في الدرج عند بداية استخدام الحساب)
-          <input id="trOpening" type="number" step="0.01" min="0" value="${opening?opening.amount:0}">
-        </label>
-        <label>تاريخ بداية الرصيد<input id="trOpeningDate" type="date" value="${opening?.date||today}"></label>
-      </div>
-      <button type="button" class="secondary" onclick="saveOpeningBalance()">💾 حفظ الرصيد الافتتاحي</button>
-    </details>
-    <details class="expense-panel">
-      <summary>📊 عرض حسابات التشغيل (للاطلاع فقط — لا تدخل في رصيد الخزنة)</summary>
-      <div class="profile-grid">
-        <div class="kv"><b>💵 عربونات أوامر الشغل</b>${op.deposits.toFixed(2)} ج</div>
-        <div class="kv"><b>💳 تحصيلات إغلاق الأوامر</b>${op.finalCollections.toFixed(2)} ج</div>
-        <div class="kv"><b>🛠️ إجمالي تحصيلات الأوامر</b>${op.orderCollections.toFixed(2)} ج</div>
-        <div class="kv"><b>🧯 مصاريف التشغيل</b>${op.expenses.toFixed(2)} ج</div>
-      </div>
-      <div class="hint">هذه الأرقام للعرض والمراجعة فقط. لا تُضاف ولا تُخصم من درج الخزنة.</div>
-    </details>
-    <h3 class="treasury-list-title">📋 كشف درج الخزنة</h3>
-    ${list.length?list.map(x=>`<div class="treasury-row ${x.type}">
-      <div class="treasury-row-main">
-        <b>${esc(x.reason||"—")}</b>
-        <small>${esc(new Date((x.date||today)+"T"+(x.time||"00:00")).toLocaleString("ar-EG"))} • ${esc(x.category||"أخرى")}${x.counterparty?` • 👤 ${esc(x.counterparty)}`:""}${x.place?` • 📍 ${esc(x.place)}`:""}</small>
-        ${x.note?`<small>📝 ${esc(x.note)}</small>`:""}
-      </div>
-      <div class="treasury-row-amount ${x.type}">${x.type==="in"?"+":"−"}${(+x.amount||0).toFixed(2)} ج</div>
-      <div class="treasury-row-actions"><button type="button" class="mini-action" onclick="editTreasuryEntry('${x.id}')">✏️</button><button type="button" class="mini-action" onclick="deleteTreasuryEntry('${x.id}')">🗑️</button></div>
-    </div>`).join(""):`<div class="hint">لا توجد حركات في درج الخزنة بعد.</div>`}
-  `;
-}
+/* قسم الخزنة اتنقل لملف treasury.js (راجع الملف ده لو محتاج تعدل فيه). */
 
-/* ---------------------------------------------------------------------
-   📋 المهام والمتابعة: قسم مستقل عن الدورة الأساسية.
---------------------------------------------------------------------- */
-function taskRows(){return arr(K.tasks).filter(x=>!x.deleted)}
-function taskDateTime(t){return `${t.date||""}${t.time?"T"+t.time:""}`}
-function taskPriorityClass(p){return p==="عاجلة"?"negative":p==="عالية"?"high":""}
-function saveTask(){
-  let title=(document.getElementById("taskTitle")?.value||"").trim();
-  if(!title)return alert("اكتب عنوان المهمة.");
-  let t={
-    id:id(),title,
-    note:(document.getElementById("taskNote")?.value||"").trim(),
-    date:document.getElementById("taskDate")?.value||localDateKey(new Date()),
-    time:document.getElementById("taskTime")?.value||"",
-    priority:document.getElementById("taskPriority")?.value||"عادية",
-    customerId:document.getElementById("taskCustomer")?.value||"",
-    requestId:document.getElementById("taskRequest")?.value||"",
-    completed:false,createdAt:new Date().toISOString()
-  };
-  put(K.tasks,taskRows().concat(t));clearTaskForm();renderTasks();
-}
-function clearTaskForm(){
-  ["taskTitle","taskNote","taskTime","taskCustomer","taskRequest"].forEach(idv=>{let e=document.getElementById(idv);if(e)e.value=""});
-  let d=document.getElementById("taskDate");if(d)d.value=localDateKey(new Date());
-  let p=document.getElementById("taskPriority");if(p)p.value="عادية";
-}
-function toggleTask(idv){
-  let a=arr(K.tasks),t=a.find(x=>x.id===idv);if(!t)return;t.completed=!t.completed;t.completedAt=t.completed?new Date().toISOString():"";put(K.tasks,a);renderTasks();
-}
-function deleteTask(idv){
-  let a=arr(K.tasks),t=a.find(x=>x.id===idv);if(!t)return;
-  if(!confirm(`حذف المهمة «${t.title||""}»؟`))return;
-  put(K.tasks,a.filter(x=>x.id!==idv));renderTasks();
-}
-function editTask(idv){
-  let a=arr(K.tasks),t=a.find(x=>x.id===idv);if(!t)return;
-  let title=prompt("عنوان المهمة:",t.title);if(title===null)return;
-  let note=prompt("التفاصيل:",t.note||"");if(note===null)return;
-  let date=prompt("التاريخ YYYY-MM-DD:",t.date||localDateKey(new Date()));if(date===null)return;
-  let time=prompt("الوقت HH:MM (اختياري):",t.time||"");if(time===null)return;
-  let priority=prompt("الأولوية (عادية / عالية / عاجلة):",t.priority||"عادية");if(priority===null)return;
-  t.title=title.trim()||t.title;t.note=note.trim();t.date=date.trim()||t.date;t.time=time.trim();t.priority=priority.trim()||t.priority;
-  put(K.tasks,a);renderTasks();
-}
-function renderTasks(){
-  let el=document.getElementById("taskList");if(!el)return;
-  let q=(document.getElementById("taskSearch")?.value||"").toLowerCase().trim(),
-      filter=document.getElementById("taskFilter")?.value||"open",
-      today=localDateKey(new Date());
-  let rows=taskRows().filter(t=>{
-    let text=(t.title+" "+t.note+" "+customerName(t.customerId)).toLowerCase();
-    if(q&&!text.includes(q))return false;
-    if(filter==="open"&&t.completed)return false;
-    if(filter==="done"&&!t.completed)return false;
-    if(filter==="today"&&t.date!==today)return false;
-    if(filter==="overdue"&&(t.completed||!t.date||t.date>=today))return false;
-    return true;
-  }).sort((a,b)=>Number(a.completed)-Number(b.completed)||String(a.date||"").localeCompare(String(b.date||""))||String(a.time||"").localeCompare(String(b.time||"")));
-  let open=taskRows().filter(x=>!x.completed).length,done=taskRows().filter(x=>x.completed).length;
-  let stats=document.getElementById("taskStats");if(stats)stats.innerHTML=`<div class="compact-stats"><div class="stat"><b>${open}</b><span>مفتوحة</span></div><div class="stat"><b>${done}</b><span>مكتملة</span></div><div class="stat"><b>${taskRows().filter(x=>!x.completed&&x.date===today).length}</b><span>مهام اليوم</span></div><div class="stat"><b>${taskRows().filter(x=>!x.completed&&x.date&&x.date<today).length}</b><span>متأخرة</span></div></div>`;
-  el.innerHTML=rows.length?rows.map(t=>{
-    let c=t.customerId?customerName(t.customerId):"";
-    let r=t.requestId?arr(K.r).find(x=>x.id===t.requestId):null;
-    return `<div class="item record-card ${t.completed?"task-done":""}">
-      <div class="card-side-actions">
-        <button class="primary small-btn" type="button" onclick="toggleTask('${t.id}')">${t.completed?"↩️ إعادة فتح":"✅ مكتملة"}</button>
-        <button class="secondary small-btn" type="button" onclick="editTask('${t.id}')">✏️ تعديل</button>
-        <button class="danger-btn small-btn" type="button" onclick="deleteTask('${t.id}')">🗑️ حذف</button>
-      </div>
-      <div class="record-main">
-        <div class="item-head"><b>${t.completed?"✅":"📋"} ${esc(t.title)}</b><span class="badge ${taskPriorityClass(t.priority)}">${esc(t.priority||"عادية")}</span></div>
-        <div>📅 ${esc(t.date||"بدون تاريخ")}${t.time?" • ⏰ "+esc(t.time):""}${t.date&&t.date<today&&!t.completed?" • ⚠️ متأخرة":""}</div>
-        ${c?`<div>👤 <a href="customer.html?id=${t.customerId}">${esc(c)}</a></div>`:""}
-        ${r?`<div>🛠️ <a href="request.html?id=${r.id}">${esc(r.no)}</a></div>`:""}
-        ${t.note?`<div>📝 ${esc(t.note)}</div>`:""}
-      </div>
-    </div>`;
-  }).join(""):'<div class="item">لا توجد مهام بهذا الفلتر.</div>';
-}
-function initTasks(){
-  if(!document.getElementById("taskList"))return;
-  let d=document.getElementById("taskDate");if(d&&!d.value)d.value=localDateKey(new Date());
-  let c=document.getElementById("taskCustomer"),r=document.getElementById("taskRequest");
-  if(c){fillCustomer(c);c.onchange=()=>{if(r)fillTaskRequests(r,c.value)}}
-  if(r)fillTaskRequests(r,c?.value||"");
-  document.getElementById("taskSearch")?.addEventListener("input",renderTasks);
-  document.getElementById("taskFilter")?.addEventListener("change",renderTasks);
-  let qsf=new URLSearchParams(location.search).get("filter");if(qsf&&document.getElementById("taskFilter"))document.getElementById("taskFilter").value=qsf;
-  renderTasks();
-}
-function fillTaskRequests(el,cid){
-  if(!el)return;
-  let rows=arr(K.r).filter(x=>!cid||x.customerId===cid);
-  el.innerHTML='<option value="">بدون ربط بأمر شغل</option>'+rows.map(x=>`<option value="${x.id}">${esc(x.no)} — ${esc(customerName(x.customerId))}</option>`).join("");
-}
-function customerName(i){return arr(K.c).find(x=>x.id===i)?.name||"—"} function deviceName(i){let d=arr(K.d).find(x=>x.id===i);return d?`${d.type} - ${d.brand}`:"—"}
-function addresses(c){let e=c.extraAddress||{};let hasExtra=!!(e.center||e.village||e.street||e.address);return [{key:"main",label:"العنوان الأساسي",...c.mainAddress},...(hasExtra?[{key:"extra",label:"العنوان الإضافي",...e}]:[])]}
-function addressText(a){return `${a.center||""}${a.village?" - "+a.village:""}${a.address?" - "+a.address:""}${a.street?" - "+a.street:""}`}
+/* قسم المهام والمتابعة اتنقل لملف tasks.js (راجع الملف ده لو محتاج تعدل فيه). */
+/* customerName, deviceName, addresses, addressText: منقولة لملف shared-data.js */
 function fillCenters(el,selected=""){if(!el)return;let s=settings();el.innerHTML='<option value="">اختر المركز</option>'+s.centers.map(x=>`<option ${x===selected?"selected":""}>${esc(x)}</option>`).join("")}
 function fillVillages(el,center,selected=""){if(!el)return;let vs=settings().villages[center]||[];el.innerHTML='<option value="">اختر القرية</option>'+vs.map(x=>`<option ${x===selected?"selected":""}>${esc(x)}</option>`).join("")}
 function fillCustomer(el,selected=""){if(!el)return;el.innerHTML='<option value="">اختر العميل</option>'+arr(K.c).map(x=>`<option value="${x.id}" ${x.id===selected?"selected":""}>${esc(x.name)} - ${esc(x.phone)}</option>`).join("")}
@@ -301,16 +83,29 @@ function fillExpenseCategories(){let el=document.getElementById("expCategory");i
 function addExpense(){let dEl=document.getElementById("expDate"),cEl=document.getElementById("expCategory"),aEl=document.getElementById("expAmount"),nEl=document.getElementById("expNote");let amount=+aEl.value||0;if(amount<=0)return alert("أدخل قيمة المصروف.");let date=dEl.value||new Date().toISOString().slice(0,10);let e={id:id(),date,category:cEl.value||"أخرى",amount,note:(nEl.value||"").trim(),createdAt:new Date().toISOString()};put(K.e,arr(K.e).concat(e));syncTreasuryForExpense(e);aEl.value="";nEl.value="";financeReport()}
 function deleteExpense(i){let a=arr(K.e);if(!confirm("حذف هذا المصروف؟"))return;put(K.e,a.filter(x=>x.id!==i));removeTreasuryEntry("expense-"+i);financeReport()}
 function renderExpenseList(){let el=document.getElementById("expenseList");if(!el)return;let{start,end}=getReportRange();let exp=arr(K.e).filter(x=>inRange(x.date,start,end)).sort((a,b)=>new Date(b.date)-new Date(a.date));el.innerHTML=exp.length?exp.map(x=>`<div class="expense-row"><span>${esc(new Date(x.date).toLocaleDateString("ar-EG"))}</span><span>${esc(x.category)}</span><b>${(+x.amount||0).toFixed(2)} ج</b><span class="expense-note">${esc(x.note||"")}</span><button type="button" class="mini-action" onclick="deleteExpense('${x.id}')">🗑️</button></div>`).join(""):`<div class="hint">لا توجد مصاريف مسجلة في هذه الفترة.</div>`}
-function monthReport(){if(!document.getElementById("monthlyReport"))return;fillExpenseCategories();let dEl=document.getElementById("expDate");if(dEl&&!dEl.value)dEl.value=new Date().toISOString().slice(0,10);if(!document.getElementById("reportMode"))setReportMode("month");else financeReport()}function initCustomers(){let f=document.getElementById("customerForm");if(!f)return;let q=new URLSearchParams(location.search),editId=q.get("edit"),existing=editId?arr(K.c).find(x=>x.id===editId):null;fillCenters(cCenter,existing?.mainAddress?.center||"");fillCenters(aCenter,existing?.extraAddress?.center||"");function sync(){fillVillages(cVillage,cCenter.value,existing?.mainAddress?.village||"");fillVillages(aVillage,aCenter.value,existing?.extraAddress?.village||"")}cCenter.onchange=()=>fillVillages(cVillage,cCenter.value);aCenter.onchange=()=>fillVillages(aVillage,aCenter.value);if(existing){cName.value=existing.name||"";cPhone.value=existing.phone||"";cStreet.value=existing.mainAddress?.street||"";aStreet.value=existing.extraAddress?.street||"";document.querySelector("#customerForm").classList.remove("hidden");document.querySelector("#customerForm .primary").textContent="💾 حفظ التعديلات وفتح الملف";setTimeout(sync,0)}else{if(q.get("add"))document.querySelector("#customerForm").classList.remove("hidden");sync()}f.onsubmit=e=>{e.preventDefault();let c=existing||{id:id(),createdAt:new Date().toISOString()};c.name=cName.value.trim();c.phone=cPhone.value.trim();let duplicate=duplicateCustomerByPhone(c.phone,existing?.id||"");if(duplicate){if(!confirm(`⚠️ رقم الهاتف ${c.phone} مسجل بالفعل للعميل: ${duplicate.name||"—"}.\n\nهل تريد المتابعة وإنشاء/حفظ عميل آخر بنفس الرقم؟`))return;}c.mainAddress={center:cCenter.value,village:cVillage.value,address:"",street:cStreet.value.trim()};c.extraAddress={center:aCenter.value,village:aVillage.value,address:"",street:aStreet.value.trim()};let a=arr(K.c);if(existing){put(K.c,a.map(x=>x.id===c.id?c:x))}else{a.push(c);put(K.c,a)}location.href=`customer.html?id=${c.id}`};customerSearch.oninput=renderCustomers;if(document.getElementById("customerCenterFilter")){let cf=document.getElementById("customerCenterFilter");cf.innerHTML='<option value="">🗺️ كل المراكز</option>'+(settings().centers||[]).map(x=>`<option>${esc(x)}</option>`).join("");cf.onchange=renderCustomers}renderCustomers()}
+function monthReport(){if(!document.getElementById("monthlyReport"))return;fillExpenseCategories();let dEl=document.getElementById("expDate");if(dEl&&!dEl.value)dEl.value=new Date().toISOString().slice(0,10);if(!document.getElementById("reportMode"))setReportMode("month");else financeReport()}// نفس مبدأ فصل قراءة الفورم عن منطق الحفظ اللي اتطبّق على أمر الشغل،
+// اتطبّق هنا على حفظ العميل. تأكيد رقم الهاتف المكرر فضل في onsubmit
+// لأنه فعليًا تفاعل مع المستخدم (confirm) مش منطق حفظ بيانات.
+function collectCustomerFormData(){return{name:cName.value.trim(),phone:cPhone.value.trim(),mainAddress:{center:cCenter.value,village:cVillage.value,address:"",street:cStreet.value.trim()},extraAddress:{center:aCenter.value,village:aVillage.value,address:"",street:aStreet.value.trim()}}}
+function persistCustomerRecord(formData,existing){let c=existing||{id:id(),createdAt:new Date().toISOString()};Object.assign(c,formData);let a=arr(K.c);if(existing){put(K.c,a.map(x=>x.id===c.id?c:x))}else{a.push(c);put(K.c,a)}return c}
+function initCustomers(){let f=document.getElementById("customerForm");if(!f)return;let q=new URLSearchParams(location.search),editId=q.get("edit"),existing=editId?arr(K.c).find(x=>x.id===editId):null;fillCenters(cCenter,existing?.mainAddress?.center||"");fillCenters(aCenter,existing?.extraAddress?.center||"");function sync(){fillVillages(cVillage,cCenter.value,existing?.mainAddress?.village||"");fillVillages(aVillage,aCenter.value,existing?.extraAddress?.village||"")}cCenter.onchange=()=>fillVillages(cVillage,cCenter.value);aCenter.onchange=()=>fillVillages(aVillage,aCenter.value);if(existing){cName.value=existing.name||"";cPhone.value=existing.phone||"";cStreet.value=existing.mainAddress?.street||"";aStreet.value=existing.extraAddress?.street||"";document.querySelector("#customerForm").classList.remove("hidden");document.querySelector("#customerForm .primary").textContent="💾 حفظ التعديلات وفتح الملف";setTimeout(sync,0)}else{if(q.get("add"))document.querySelector("#customerForm").classList.remove("hidden");sync()}f.onsubmit=e=>{e.preventDefault();let formData=collectCustomerFormData();let duplicate=duplicateCustomerByPhone(formData.phone,existing?.id||"");if(duplicate){if(!confirm(`⚠️ رقم الهاتف ${formData.phone} مسجل بالفعل للعميل: ${duplicate.name||"—"}.\n\nهل تريد المتابعة وإنشاء/حفظ عميل آخر بنفس الرقم؟`))return;}let c=persistCustomerRecord(formData,existing);location.href=`customer.html?id=${c.id}`};customerSearch.oninput=renderCustomers;if(document.getElementById("customerCenterFilter")){let cf=document.getElementById("customerCenterFilter");cf.innerHTML='<option value="">🗺️ كل المراكز</option>'+(settings().centers||[]).map(x=>`<option>${esc(x)}</option>`).join("");cf.onchange=renderCustomers}renderCustomers()}
 function psActions(title){return window.psInlineActions?window.psInlineActions(title):`<span class="ps-inline-actions no-print"><button type="button" class="ps-icon-btn" title="طباعة" onclick="printWorkshopTarget(this)">🖨️</button><button type="button" class="ps-icon-btn" title="مشاركة" onclick="shareWorkshopTarget(this)">↗️</button></span>`}
+// النسخة الأساسية — بيتم استبدالها لاحقًا في customers.html/customer.html بنسخة
+// workshop-mini-enhancements.js ثم workshop-mini-simple-ui.js (آخر واحد هو الشغال فعليًا).
 function renderCustomers(){let el=document.getElementById("customerList");if(!el)return;let q=(customerSearch?.value||"").toLowerCase(),cf=document.getElementById("customerCenterFilter")?.value||"",a=arr(K.c).filter(c=>(c.name+" "+c.phone+" "+addressText(c.mainAddress)).toLowerCase().includes(q)&&(!cf||c.mainAddress?.center===cf));el.innerHTML=a.length?a.map(c=>`<div class="item record-card ps-context-target" data-ps-title="العميل ${esc(c.name)}"><div class="card-side-actions"><a class="primary small-btn" href="customer.html?id=${c.id}">فتح 360°</a><button class="danger-btn small-btn" type="button" onclick="deleteCustomerRecord('${c.id}')">🗑️ حذف</button></div><div class="record-main"><div class="item-head"><a href="customer.html?id=${c.id}"><b>👤 ${esc(c.name)}</b></a><span class="badge">🔧 ${arr(K.d).filter(d=>d.customerId===c.id).length} أجهزة • 🛠️ ${arr(K.r).filter(r=>r.customerId===c.id).length} أوامر</span></div><div>📞 ${esc(c.phone)}</div><div>📍 ${esc(addressText(c.mainAddress))}</div></div></div>`).join(""):'<div class="item">لا توجد نتائج.</div>'}
 function customerProfile(){let el=document.getElementById("customerProfile");if(!el)return;let c=arr(K.c).find(x=>x.id===new URLSearchParams(location.search).get("id"));if(!c){el.innerHTML="<div class='item'>العميل غير موجود.</div>";return}let ds=arr(K.d).filter(d=>d.customerId===c.id),rs=arr(K.r).filter(r=>r.customerId===c.id);el.innerHTML=`<div class="profile ps-context-target" data-ps-title="العميل ${esc(c.name)}"><div class="page-head"><h1 class="profile-title">👤 ${esc(c.name)}</h1><div class="compact-actions"><button class="secondary" onclick="editCustomer('${c.id}')">✏️ تعديل</button>${psActions("العميل "+c.name)}<a class="primary" href="devices.html?customer=${c.id}">➕ جهاز</a> <a class="primary" href="requests.html?customer=${c.id}">➕ أمر شغل</a></div></div><div class="profile-grid"><div class="kv"><b>📞 التليفون</b>${contactLinksHtml(c.phone)}</div><div class="kv"><b>📍 العنوان الأساسي</b>${esc(addressText(c.mainAddress))}</div><div class="kv"><b>📍 العنوان الإضافي</b>${(c.extraAddress&&(c.extraAddress.center||c.extraAddress.village||c.extraAddress.street))?esc(addressText(c.extraAddress)):"—"}</div><div class="kv"><b>📊 الملخص</b>${ds.length} أجهزة • ${rs.length} أوامر</div></div></div><h2>🔧 الأجهزة</h2>${ds.length?ds.map(d=>`<div class="item"><a href="device.html?id=${d.id}"><b>${esc(d.type)} — ${esc(d.brand)}</b></a><div>${esc(d.category)} • ${esc(d.model||"بدون موديل")}</div><a class="secondary" href="requests.html?customer=${c.id}&device=${d.id}">🛠️ أمر شغل</a></div>`).join(""):"<div class='item'>لا توجد أجهزة.</div>"}<h2>🛠️ أوامر الشغل</h2>${rs.length?rs.map(r=>`<div class="item"><a href="request.html?id=${r.id}"><b>${esc(r.no)}</b></a> <span class="badge">${esc(r.status)}${r.closed?" 🔒":""}</span><div>${esc(deviceName(r.deviceId))} • الإجمالي ${(+r.total||0).toFixed(2)} ج</div></div>`).join(""):"<div class='item'>لا توجد أوامر.</div>"}`}
-function initDevices(){let f=document.getElementById("deviceForm");if(!f)return;let q=new URLSearchParams(location.search),editId=q.get("edit"),existing=editId?arr(K.d).find(x=>x.id===editId):null;fillCustomer(dCustomer,existing?.customerId||q.get("customer")||"");fillTypes(dType,existing?.type||"");fillBrands(dBrand,existing?.brand||"");function syncAddr(){fillAddress(dAddress,dCustomer.value,existing?.addressKey||"main")}function syncCat(){fillCats(dCategory,dType.value,existing?.category||"")}dCustomer.onchange=()=>{syncAddr()};dType.onchange=syncCat;dPhoto.onchange=previewImage;syncAddr();syncCat();if(existing){dModel.value=existing.model||"";dDesc.value=existing.desc||"";if(existing.photo)photoPreview.innerHTML=`<img class="photo" src="${existing.photo}">`;document.querySelector("#deviceForm").classList.remove("hidden");document.getElementById("deviceSubmitBtn").textContent="💾 حفظ التعديلات وفتح الملف"}else if(q.get("customer")||q.get("add")){document.querySelector("#deviceForm").classList.remove("hidden")}f.onsubmit=e=>saveDevice(e,existing);document.getElementById("deviceSearch")?.addEventListener("input",renderDevices);if(document.getElementById("deviceCenterFilter")){let cf=document.getElementById("deviceCenterFilter");cf.innerHTML='<option value="">🗺️ كل المراكز</option>'+(settings().centers||[]).map(x=>`<option>${esc(x)}</option>`).join("");cf.onchange=renderDevices}renderDevices()}
+function initDevices(){let f=document.getElementById("deviceForm");if(!f)return;let q=new URLSearchParams(location.search),editId=q.get("edit"),existing=editId?arr(K.d).find(x=>x.id===editId):null;fillCustomer(dCustomer,existing?.customerId||q.get("customer")||"");fillTypes(dType,existing?.type||"");fillBrands(dBrand,existing?.brand||"");function syncAddr(){fillAddress(dAddress,dCustomer.value,existing?.addressKey||"main")}function syncCat(){fillCats(dCategory,dType.value,existing?.category||"")}dCustomer.onchange=()=>{syncAddr()};dType.onchange=syncCat;dPhoto.onchange=previewImage;syncAddr();syncCat();if(existing){dModel.value=existing.model||"";dDesc.value=existing.desc||"";if(existing.photo){(async()=>{let src=window.ImageStore?await window.ImageStore.resolveSrc(existing.photo):existing.photo;if(src)photoPreview.innerHTML=`<img class="photo" src="${src}">`})()}document.querySelector("#deviceForm").classList.remove("hidden");document.getElementById("deviceSubmitBtn").textContent="💾 حفظ التعديلات وفتح الملف"}else if(q.get("customer")||q.get("add")){document.querySelector("#deviceForm").classList.remove("hidden")}f.onsubmit=e=>saveDevice(e,existing);document.getElementById("deviceSearch")?.addEventListener("input",renderDevices);if(document.getElementById("deviceCenterFilter")){let cf=document.getElementById("deviceCenterFilter");cf.innerHTML='<option value="">🗺️ كل المراكز</option>'+(settings().centers||[]).map(x=>`<option>${esc(x)}</option>`).join("");cf.onchange=renderDevices}renderDevices()}
 function previewImage(e){let file=e.target.files[0],out=document.getElementById("photoPreview");if(!file)return;let r=new FileReader();r.onload=()=>out.innerHTML=`<img class="photo" src="${r.result}">`;r.readAsDataURL(file)}
-async function saveDevice(e,existing=null){e.preventDefault();try{let photo=dPhoto.files[0]?await imageToDataURL(dPhoto.files[0]):(existing?.photo||"");let d=existing||{id:id(),createdAt:new Date().toISOString()};Object.assign(d,{customerId:dCustomer.value,addressKey:dAddress.value,type:dType.value,category:dCategory.value,brand:dBrand.value,model:dModel.value,desc:dDesc.value,photo});let a=arr(K.d);if(!saveJSONSafe(K.d,existing?a.map(x=>x.id===d.id?d:x):a.concat(d)))return;location.href=`device.html?id=${d.id}`}catch(err){alert("تعذر حفظ صورة الجهاز. جرّب صورة أخرى أصغر.")}}
+// نفس مبدأ الفصل: قراءة الفورم (بما فيها تحويل الصورة غير المتزامن) في دالة،
+// ومنطق الحفظ الصِرف في دالة تانية بترجع {ok, device} بدل ما تتحكم في التنقل بنفسها.
+async function collectDeviceFormData(existing){let photo=existing?.photo||"";if(dPhoto.files[0]){let dataURL=await imageToDataURL(dPhoto.files[0]);photo=window.ImageStore?await window.ImageStore.save(dataURL,existing?.photo):dataURL}return{customerId:dCustomer.value,addressKey:dAddress.value,type:dType.value,category:dCategory.value,brand:dBrand.value,model:dModel.value,desc:dDesc.value,photo}}
+function persistDeviceRecord(formData,existing){let d=existing||{id:id(),createdAt:new Date().toISOString()};Object.assign(d,formData);let a=arr(K.d);if(!saveJSONSafe(K.d,existing?a.map(x=>x.id===d.id?d:x):a.concat(d)))return{ok:false};return{ok:true,device:d}}
+async function saveDevice(e,existing=null){e.preventDefault();try{let formData=await collectDeviceFormData(existing);let result=persistDeviceRecord(formData,existing);if(!result.ok)return;location.href=`device.html?id=${result.device.id}`}catch(err){alert("تعذر حفظ صورة الجهاز. جرّب صورة أخرى أصغر.")}}
+// النسخة الأساسية — بيتم استبدالها لاحقًا في devices.html/device.html بنسخة
+// workshop-mini-enhancements.js ثم workshop-mini-simple-ui.js (آخر واحد هو الشغال فعليًا).
 function renderDevices(){let el=document.getElementById("deviceList");if(!el)return;let q=(document.getElementById("deviceSearch")?.value||"").toLowerCase().trim();let cf=document.getElementById("deviceCenterFilter")?.value||"";let a=arr(K.d).filter(d=>{let c=arr(K.c).find(x=>x.id===d.customerId)||{};let text=(c.name||"")+" "+(c.phone||"")+" "+addressText(c.mainAddress||{})+" "+addressText(c.extraAddress||{});return text.toLowerCase().includes(q)&&(!cf||c.mainAddress?.center===cf)});el.innerHTML=a.length?a.map(d=>`<div class="item record-card ps-context-target" data-ps-title="${esc(d.type)} ${esc(d.brand)}"><div class="card-side-actions"><a class="primary small-btn" href="device.html?id=${d.id}">فتح 360°</a><button class="danger-btn small-btn" type="button" onclick="deleteDeviceRecord('${d.id}')">🗑️ حذف</button></div><div class="record-main"><div class="item-head"><a href="device.html?id=${d.id}"><b>🔧 ${esc(d.type)} — ${esc(d.brand)}</b></a><span class="badge">${esc(customerName(d.customerId))}</span></div><div>📍 ${esc(addressText((arr(K.c).find(c=>c.id===d.customerId)||{}).mainAddress||{}))}</div><div>${esc(d.category)} • ${esc(d.model||"—")}</div></div></div>`).join(""):'<div class="item">لا توجد أجهزة.</div>'}
 
-function deviceProfile(){let el=document.getElementById("deviceProfile");if(!el)return;let d=arr(K.d).find(x=>x.id===new URLSearchParams(location.search).get("id"));if(!d){el.innerHTML="<div class='item'>الجهاز غير موجود.</div>";return}let rs=arr(K.r).filter(r=>r.deviceId===d.id);el.innerHTML=`<div class="profile ps-context-target" data-ps-title="${esc(d.type)} — ${esc(d.brand)}"><div class="page-head"><h1 class="profile-title">🔧 ${esc(d.type)} — ${esc(d.brand)}</h1><div class="compact-actions"><button class="secondary" onclick="editDevice('${d.id}')">✏️ تعديل</button>${psActions(d.type+" — "+d.brand)}<a class="primary" href="requests.html?customer=${d.customerId}&device=${d.id}">➕ أمر شغل</a></div></div><div class="profile-grid"><div class="kv"><b>👤 العميل</b><a href="customer.html?id=${d.customerId}">${esc(customerName(d.customerId))}</a></div><div class="kv"><b>📞 التليفون</b>${contactLinksHtml((arr(K.c).find(c=>c.id===d.customerId)||{}).phone)}</div><div class="kv"><b>📍 العنوان</b>${esc(addressText((arr(K.c).find(c=>c.id===d.customerId)||{}).mainAddress||{}))}</div><div class="kv"><b>النوع / التصنيف</b>${esc(d.type)} / ${esc(d.category)}</div><div class="kv"><b>الموديل</b>${esc(d.model)||"—"}</div></div>${d.photo?`<img class="photo" src="${d.photo}">`:""}<h2>🛠️ سجل أوامر الشغل</h2>${rs.length?rs.map(r=>`<div class="item"><a href="request.html?id=${r.id}"><b>${esc(r.no)}</b></a> <span class="badge">${esc(r.status)}</span>${r.workshopStatus&&r.workshopStatus!=="غير مطلوب"?`<span class="badge workshop-badge">🏭 ${esc(r.workshopStatus)}</span>`:""}<div>${esc(r.fault)}</div></div>`).join(""):"<div class='item'>لا يوجد سجل.</div>"}</div>`}
+async function deviceProfile(){let el=document.getElementById("deviceProfile");if(!el)return;let d=arr(K.d).find(x=>x.id===new URLSearchParams(location.search).get("id"));if(!d){el.innerHTML="<div class='item'>الجهاز غير موجود.</div>";return}let rs=arr(K.r).filter(r=>r.deviceId===d.id);el.innerHTML=`<div class="profile ps-context-target" data-ps-title="${esc(d.type)} — ${esc(d.brand)}"><div class="page-head"><h1 class="profile-title">🔧 ${esc(d.type)} — ${esc(d.brand)}</h1><div class="compact-actions"><button class="secondary" onclick="editDevice('${d.id}')">✏️ تعديل</button>${psActions(d.type+" — "+d.brand)}<a class="primary" href="requests.html?customer=${d.customerId}&device=${d.id}">➕ أمر شغل</a></div></div><div class="profile-grid"><div class="kv"><b>👤 العميل</b><a href="customer.html?id=${d.customerId}">${esc(customerName(d.customerId))}</a></div><div class="kv"><b>📞 التليفون</b>${contactLinksHtml((arr(K.c).find(c=>c.id===d.customerId)||{}).phone)}</div><div class="kv"><b>📍 العنوان</b>${esc(addressText((arr(K.c).find(c=>c.id===d.customerId)||{}).mainAddress||{}))}</div><div class="kv"><b>النوع / التصنيف</b>${esc(d.type)} / ${esc(d.category)}</div><div class="kv"><b>الموديل</b>${esc(d.model)||"—"}</div></div><div id="deviceProfilePhoto"></div><h2>🛠️ سجل أوامر الشغل</h2>${rs.length?rs.map(r=>`<div class="item"><a href="request.html?id=${r.id}"><b>${esc(r.no)}</b></a> <span class="badge">${esc(r.status)}</span>${r.workshopStatus&&r.workshopStatus!=="غير مطلوب"?`<span class="badge workshop-badge">🏭 ${esc(r.workshopStatus)}</span>`:""}<div>${esc(r.fault)}</div></div>`).join(""):"<div class='item'>لا يوجد سجل.</div>"}</div>`;if(d.photo){let src=window.ImageStore?await window.ImageStore.resolveSrc(d.photo):d.photo;let ph=document.getElementById("deviceProfilePhoto");if(ph&&src)ph.innerHTML=`<img class="photo" src="${src}">`}}
 function initRequests(){let f=document.getElementById("requestForm");if(!f)return;let q=new URLSearchParams(location.search),editId=q.get("edit"),existing=editId?arr(K.r).find(x=>x.id===editId):null;if(existing?.closed){alert("أمر الشغل مغلق نهائيًا ولا يمكن تعديله.");location.href=`request.html?id=${existing.id}`;return}currentParts=existing?.parts?existing.parts.map(x=>({...x})):[];fillCustomer(rCustomer,existing?.customerId||q.get("customer")||"");fillAddress(rAddress,rCustomer.value,existing?.addressKey||"main");fillDevice(rDevice,rCustomer.value,existing?.deviceId||q.get("device")||"");let s=settings(),defPriority=existing?.priority||(s.priorities||[])[0]||"عادية",defPlace=existing?.executionPlace||(s.executionPlaces||[])[0]||"عند العميل",defWs=existing?.workshopStatus||(s.workshopStatuses||[])[0]||"غير مطلوب",defStatus=existing?.status||(s.orderStatuses||[])[0]||"جديد";fillList(rPriority,"priorities",defPriority,"اختر الأولوية");fillList(rExecutionPlace,"executionPlaces",defPlace,"اختر مكان التنفيذ");fillList(rWorkshopStatus,"workshopStatuses",defWs,"اختر حالة الورشة");fillList(rStatus,"orderStatuses",defStatus,"اختر الحالة");if(document.getElementById("rTag"))fillList(rTag,"orderTags",existing?.tag||"","🏷️ بدون تصنيف");rCustomer.onchange=()=>{fillAddress(rAddress,rCustomer.value,"main");fillDevice(rDevice,rCustomer.value,"")};rVisit.onchange=()=>{if(rVisit.value&&rStatus.value==="جديد")rStatus.value="مجدول"};rLabor.oninput=calc;rDeposit.oninput=calc;rPart.innerHTML='<option value="">اختر قطعة</option>'+arr(K.p).map(p=>`<option value="${p.id}">${esc(p.name)} — ${p.use||0} ج — ${p.qty} متاح</option>`).join("");if(existing){rVisit.value=existing.visit||"";rFault.value=existing.fault||"";rWork.value=existing.work||"";rLabor.value=(+existing.labor||0).toFixed(2);rDeposit.value=existing.deposit||0;renderOrderParts();f.classList.remove("hidden");f.querySelector("#requestSubmitBtn").textContent="💾 حفظ التعديلات وفتح أمر الشغل"}else if(q.get("customer")||q.get("device")||q.get("add")){f.classList.remove("hidden")}f.onsubmit=e=>saveRequest(e,existing);document.getElementById("requestSearch")?.addEventListener("input",renderRequests);document.getElementById("statusFilter")?.addEventListener("change",renderRequests);document.getElementById("workshopFilter")?.addEventListener("change",renderRequests);renderRequests();calc()}
 function fillDevice(el,cid,selected=""){el.innerHTML='<option value="">اختر الجهاز</option>'+arr(K.d).filter(d=>d.customerId===cid).map(d=>`<option value="${d.id}" ${d.id===selected?"selected":""}>${esc(d.type)} — ${esc(d.brand)}</option>`).join("")}
 let currentParts=[];
@@ -321,7 +116,40 @@ function addExternalPartToOrder(){let nameEl=document.getElementById("rExtName")
 function renderOrderParts(){let el=document.getElementById("orderParts");el.innerHTML=currentParts.map((x,i)=>{let p=x.external?null:arr(K.p).find(z=>z.id===x.partId);let nm=x.external?(x.name||"قطعة خارجية"):(p?.name||"قطعة محذوفة");let amount=x.qty*x.sell;let amountLabel=`${amount.toFixed(2)} ج`;return `<div class="part-row${x.external?" part-row-external":""}"><span>${x.external?"🧳 ":""}${esc(nm)}${x.external?` <small class="ext-badge">خارج المخزن</small>`:""}</span><input type="number" min="1" value="${x.qty}" onchange="currentParts[${i}].qty=+this.value;calc();renderOrderParts()"><span title="${x.external?`سعر الشراء ${(+x.cost||0).toFixed(2)} ج`:""}">${amountLabel}</span><button type="button" class="secondary" onclick="currentParts.splice(${i},1);renderOrderParts();calc()">🗑️</button></div>`}).join("")}
 function calc(){let ps=partsStockTotal(currentParts),t=ps+(+rLabor.value||0),dep=+rDeposit.value||0;rPartsTotal.value=ps.toFixed(2);rTotal.value=t.toFixed(2);remainBox.classList.toggle("hidden",dep<=0);rRemain.value=Math.max(0,t-dep).toFixed(2)}
 function adjustStockForOrder(oldParts,newParts,requestId){let stock=arr(K.p),moves=arr(K.m),delta={};oldParts.filter(x=>x.partId&&!x.external).forEach(x=>delta[x.partId]=(delta[x.partId]||0)+x.qty);newParts.filter(x=>x.partId&&!x.external).forEach(x=>delta[x.partId]=(delta[x.partId]||0)-x.qty);for(let [pid,d] of Object.entries(delta)){if(!d)continue;let p=stock.find(z=>z.id===pid);if(!p)continue;if(d>0)p.qty=(+p.qty||0)+d;else{let need=-d;if(need>(+p.qty||0))return false;p.qty=(+p.qty||0)-need}moves.push({id:id(),partId:pid,type:d>0?"إرجاع بسبب تعديل أمر":"خروج بسبب تعديل أمر",qty:Math.abs(d),requestId,at:new Date().toISOString()})}put(K.p,stock);put(K.m,moves);return true}
-function saveRequest(e,existing=null){e.preventDefault();let t=+rTotal.value||0,dep=+rDeposit.value||0,tag=document.getElementById("rTag")?rTag.value:(existing?.tag||"");let partsCost=partsStockCost(currentParts);let laborTotal=(+rLabor.value||0);if(existing){let oldParts=existing.parts||[];let backup=JSON.stringify(arr(K.p));if(!adjustStockForOrder(oldParts,currentParts,existing.id)){put(K.p,JSON.parse(backup));return alert("الكمية الجديدة غير متاحة في المخزن.")}Object.assign(existing,{customerId:rCustomer.value,deviceId:rDevice.value,addressKey:rAddress.value,priority:rPriority.value,visit:rVisit.value,status:rStatus.value,executionPlace:rExecutionPlace.value,workshopStatus:rWorkshopStatus.value,partsWaiting:!!document.getElementById("rPartsWaiting")?.checked,tag,fault:rFault.value,work:rWork.value,labor:laborTotal,parts:currentParts,partsTotal:+rPartsTotal.value||0,partsCost,total:t,deposit:dep,remain:Math.max(0,t-dep)});applyStatusTimestamp(existing,existing.status);put(K.r,arr(K.r).map(x=>x.id===existing.id?existing:x));syncTreasuryForOrderDeposit(existing);location.href=`request.html?id=${existing.id}`;return}let r={id:id(),no:orderNo(),customerId:rCustomer.value,deviceId:rDevice.value,addressKey:rAddress.value,priority:rPriority.value,visit:rVisit.value,status:rStatus.value,executionPlace:rExecutionPlace.value,workshopStatus:rWorkshopStatus.value,partsWaiting:!!document.getElementById("rPartsWaiting")?.checked,tag,fault:rFault.value,work:rWork.value,labor:laborTotal,parts:currentParts,partsTotal:+rPartsTotal.value||0,partsCost,total:t,deposit:dep,remain:Math.max(0,t-dep),closed:false,createdAt:new Date().toISOString()};applyStatusTimestamp(r,r.status);let stock=arr(K.p),moves=arr(K.m);currentParts.filter(x=>!x.external).forEach(x=>{let p=stock.find(z=>z.id===x.partId);if(p){p.qty=Math.max(0,(+p.qty||0)-x.qty);moves.push({id:id(),partId:p.id,type:"خروج",qty:x.qty,requestId:r.id,at:new Date().toISOString()})}});put(K.p,stock);put(K.m,moves);put(K.r,arr(K.r).concat(r));syncTreasuryForOrderDeposit(r);location.href=`request.html?id=${r.id}`}
+// saveRequest() كانت بتخلط بين قراءة الفورم من الـ DOM ومنطق الحفظ والمخزون في
+// دالة واحدة. اتقسمت لـ 3: قراءة الفورم (collectRequestFormData) — منطق الحفظ
+// الصِرف اللي مبيلمسش DOM خالص (persistRequestRecord، ممكن يُختبر لوحده أو
+// يُستخدم من مكان تاني زي استيراد جماعي) — ودالة تحكم رفيعة (saveRequest) بتربط
+// بينهم. السلوك الفعلي (الحسابات، ترتيب العمليات، رسائل الخطأ) لم يتغيّر.
+function collectRequestFormData(existing){let t=+rTotal.value||0,dep=+rDeposit.value||0,tag=document.getElementById("rTag")?rTag.value:(existing?.tag||"");return{customerId:rCustomer.value,deviceId:rDevice.value,addressKey:rAddress.value,priority:rPriority.value,visit:rVisit.value,status:rStatus.value,executionPlace:rExecutionPlace.value,workshopStatus:rWorkshopStatus.value,partsWaiting:!!document.getElementById("rPartsWaiting")?.checked,tag,fault:rFault.value,work:rWork.value,labor:(+rLabor.value||0),parts:currentParts,partsTotal:+rPartsTotal.value||0,total:t,deposit:dep}}
+function persistRequestRecord(formData,existing){
+  // اللي كان قبل كده backup يدوي بـ JSON.stringify لمفتاح wf_p بس، دلوقتي
+  // withRollback (shared-data.js) بيغطي wf_p وwf_m مع بعض، وبيرجعهم
+  // تلقائيًا لو رجّعنا {ok:false} أو حصل استثناء — بدل ما نعمل الإرجاع يدوي.
+  let partsCost=partsStockCost(formData.parts);
+  return withRollback([K.p,K.m],()=>{
+    if(existing){
+      let oldParts=existing.parts||[];
+      if(!adjustStockForOrder(oldParts,formData.parts,existing.id)){
+        return{ok:false,error:"الكمية الجديدة غير متاحة في المخزن."}
+      }
+      Object.assign(existing,{customerId:formData.customerId,deviceId:formData.deviceId,addressKey:formData.addressKey,priority:formData.priority,visit:formData.visit,status:formData.status,executionPlace:formData.executionPlace,workshopStatus:formData.workshopStatus,partsWaiting:formData.partsWaiting,tag:formData.tag,fault:formData.fault,work:formData.work,labor:formData.labor,parts:formData.parts,partsTotal:formData.partsTotal,partsCost,total:formData.total,deposit:formData.deposit,remain:Math.max(0,formData.total-formData.deposit)});
+      applyStatusTimestamp(existing,existing.status);
+      put(K.r,arr(K.r).map(x=>x.id===existing.id?existing:x));
+      syncTreasuryForOrderDeposit(existing);
+      return{ok:true,request:existing}
+    }
+    let r={id:id(),no:orderNo(),customerId:formData.customerId,deviceId:formData.deviceId,addressKey:formData.addressKey,priority:formData.priority,visit:formData.visit,status:formData.status,executionPlace:formData.executionPlace,workshopStatus:formData.workshopStatus,partsWaiting:formData.partsWaiting,tag:formData.tag,fault:formData.fault,work:formData.work,labor:formData.labor,parts:formData.parts,partsTotal:formData.partsTotal,partsCost,total:formData.total,deposit:formData.deposit,remain:Math.max(0,formData.total-formData.deposit),closed:false,createdAt:new Date().toISOString()};
+    applyStatusTimestamp(r,r.status);
+    let stock=arr(K.p),moves=arr(K.m);
+    formData.parts.filter(x=>!x.external).forEach(x=>{let p=stock.find(z=>z.id===x.partId);if(p){p.qty=Math.max(0,(+p.qty||0)-x.qty);moves.push({id:id(),partId:p.id,type:"خروج",qty:x.qty,requestId:r.id,at:new Date().toISOString()})}});
+    put(K.p,stock);put(K.m,moves);
+    put(K.r,arr(K.r).concat(r));
+    syncTreasuryForOrderDeposit(r);
+    return{ok:true,request:r}
+  })
+}
+function saveRequest(e,existing=null){e.preventDefault();let formData=collectRequestFormData(existing);let result=persistRequestRecord(formData,existing);if(!result.ok)return alert(result.error);location.href=`request.html?id=${result.request.id}`}
 function requestScheduleSummary(){let el=document.getElementById("requestSchedule");if(!el)return;let today=new Date();today.setHours(0,0,0,0);let groups={};arr(K.r).filter(r=>r.visit&&!r.closed&&r.status!=="ملغي").forEach(r=>{let d=new Date(r.visit);if(Number.isNaN(d.getTime()))return;d.setHours(0,0,0,0);if(d<today)return;let k=localDateKey(d);(groups[k]??=[]).push(r)});let keys=Object.keys(groups).sort();if(!keys.length){el.innerHTML=`<div class="schedule-empty">📅 لا توجد مواعيد مجدولة قادمة.</div>`;return}el.innerHTML=`<div class="schedule-head"><b>📅 المواعيد القادمة</b><span>عدد المواعيد: ${keys.reduce((n,k)=>n+groups[k].length,0)}</span></div><div class="schedule-table"><div class="schedule-row schedule-header"><span>التاريخ</span><span>العدد</span><span>الأوامر</span></div>${keys.map(k=>{let ds=groups[k],d=new Date(k+"T00:00:00");return `<div class="schedule-row"><strong>${d.toLocaleDateString("ar-EG",{day:"2-digit",month:"2-digit"})}</strong><b>${ds.length}</b><span>${ds.map(r=>`<a href="request.html?id=${r.id}">${esc(r.no)}</a>`).join(" • ")}</span></div>`}).join("")}</div>`}
 function workshopBadge(r){return r.workshopStatus&&r.workshopStatus!=="غير مطلوب"?`<span class="badge workshop-badge">🏭 ${esc(r.workshopStatus)}</span>`:""}
 function requestBucketMatch(r,b){
@@ -339,6 +167,8 @@ function renderRequestFolders(){
   const counts={completed:all.filter(r=>requestBucketMatch(r,"completed")).length,workshop:all.filter(r=>requestBucketMatch(r,"workshop")).length,today:all.filter(r=>requestBucketMatch(r,"today")).length,parts:all.filter(r=>requestBucketMatch(r,"parts")).length,overdue:all.filter(r=>requestBucketMatch(r,"overdue")).length};
   el.innerHTML=`<div class="request-folders-grid"><a class="request-folder" href="requests.html?bucket=completed"><span>✅</span><b>الأوامر المكتملة</b><small>${counts.completed} أمر</small></a><a class="request-folder" href="requests.html?bucket=workshop"><span>🏭</span><b>أوامر الورشة</b><small>${counts.workshop} أمر</small></a><a class="request-folder" href="requests.html?bucket=today"><span>📅</span><b>أوامر اليوم</b><small>${counts.today} موعد</small></a><a class="request-folder" href="requests.html?bucket=parts"><span>📦</span><b>انتظار قطع غيار</b><small>${counts.parts} أمر</small></a><a class="request-folder" href="requests.html?bucket=overdue"><span>⚠️</span><b>متأخر / لم يُنفذ</b><small>${counts.overdue} أمر</small></a></div>`;
 }
+// النسخة الأساسية — بيتم استبدالها لاحقًا في requests.html بنسخة workshop-mini-simple-ui.js
+// (وهي الشغالة فعليًا هناك). صفحات تانية (زي customer.html) ممكن تستخدم النسخة دي كما هي.
 function renderRequests(){let el=document.getElementById("requestList");if(!el)return;renderRequestFolders();let q=(document.getElementById("requestSearch")?.value||"").toLowerCase(),sf=document.getElementById("statusFilter")?.value||"",wf=document.getElementById("workshopFilter")?.value||"",bucket=new URLSearchParams(location.search).get("bucket")||"";let a=arr(K.r).filter(r=>{let text=(r.no+" "+customerName(r.customerId)+" "+r.fault).toLowerCase();let okW=wf===""||(wf==="workshop"&&r.executionPlace==="الورشة")||(wf==="pull"&&r.workshopStatus&&r.workshopStatus!=="غير مطلوب"&&r.workshopStatus!=="تم التسليم")||(wf==="inside"&&["تم السحب","استلام الورشة","تحت الإصلاح","جاهز للتسليم"].includes(r.workshopStatus));return text.includes(q)&&(sf===""||r.status===sf)&&okW&&requestBucketMatch(r,bucket)});let statuses=["جديد","تم التواصل","مجدول","جاري الفحص","انتظار موافقة العميل","تحت الإصلاح","مكتمل","ملغي"];el.innerHTML=a.length?a.map(r=>`<div class="item record-card ps-context-target" data-ps-title="أمر الشغل ${esc(r.no)}"><div class="card-side-actions"><a class="primary small-btn" href="request.html?id=${r.id}">فتح 360°</a>${!r.closed&&!r.paid?`<a class="secondary small-btn" href="requests.html?edit=${r.id}">✏️ تعديل</a>`:""}<button class="danger-btn small-btn" type="button" onclick="deleteRequestRecord('${r.id}')">🗑️ حذف</button></div><div class="record-main"><div class="item-head"><a href="request.html?id=${r.id}"><b>🛠️ ${esc(r.no)}</b></a>${r.closed?'<span class="badge">🔒 مغلق</span>':`<select class="inline-status" onchange="changeRequestStatus('${r.id}',this.value)">${statuses.map(x=>`<option ${r.status===x?"selected":""}>${x}</option>`).join("")}</select>`}${requestBucketMatch(r,"overdue")?'<span class="badge">⚠️ لم يُنفذ</span>':""}${requestBucketMatch(r,"parts")?'<span class="badge">📦 انتظار قطع غيار</span>':""}</div><div>👤 ${esc(customerName(r.customerId))} • 🔧 ${esc(deviceName(r.deviceId))}</div><div>📅 ${r.visit?new Date(r.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"بدون موعد"} • ${r.executionPlace==="الورشة"?"🏭 الورشة":"🏠 عند العميل"}</div>${workshopBadge(r)}<div>💰 الإجمالي ${(+r.total||0).toFixed(2)} ج • 💵 العربون ${(+r.deposit||0).toFixed(2)} ج</div></div></div>`).join(""):'<div class="item">لا توجد أوامر.</div>';requestScheduleSummary()}
 
 function requestProfile(){let el=document.getElementById("requestProfile");if(!el)return;let r=arr(K.r).find(x=>x.id===new URLSearchParams(location.search).get("id"));if(!r){el.innerHTML="<div class='item'>الأمر غير موجود.</div>";return}let parts=(r.parts||[]).map(x=>{let p=x.external?null:arr(K.p).find(z=>z.id===x.partId);let nm=x.external?(x.name||"قطعة خارجية"):(p?.name||"قطعة محذوفة");let amount=(x.qty||0)*(x.sell||0);let amountLabel=`${amount.toFixed(2)} ج`;let extCost=x.external?`<div class="ext-cost-note">💵 سعر الشراء: ${(+x.cost||0).toFixed(2)} ج × ${x.qty} = ${((+x.cost||0)*(x.qty||0)).toFixed(2)} ج</div>`:"";return `<div class="part-row compact-part${x.external?" part-row-external":""}"><span>${x.external?"🧳":"🔧"} ${esc(nm)}${x.external?' <small class="ext-badge">خارج المخزن</small>':""}${extCost}</span><span>× ${x.qty}</span><strong>${amountLabel}</strong></div>`}).join("");let canEdit=!r.closed&&!r.paid;let cust=arr(K.c).find(c=>c.id===r.customerId)||{};let custPhone=(cust.phone||"").trim();let stockOptions=arr(K.p).map(p=>`<option value="${esc(p.id)}" data-part-id="${esc(p.id)}" data-qty="${+p.qty||0}">${esc(p.name)} — ${(+p.use||0).toFixed(2)} ج — ${+p.qty||0} متاح</option>`).join("");let paid=!!r.paid;let ws=r.workshopStatus||"غير مطلوب";let workshopTrack=ws!=="غير مطلوب"?`<div class="workshop-track"><h3>🏭 متابعة الجهاز داخل الورشة</h3><div class="workshop-state"><b>${esc(ws)}</b>${r.workshopAt?`<small>آخر تحديث: ${new Date(r.workshopAt).toLocaleString("ar-EG")}</small>`:""}${r.pulledAt?`<small>📦 تم سحب الجهاز: ${new Date(r.pulledAt).toLocaleString("ar-EG")}</small>`:""}</div><div class="workshop-actions">${["تم السحب","استلام الورشة","تحت الإصلاح","جاهز للتسليم","تم التسليم"].map(x=>`<button type="button" class="secondary mini-action ${ws===x?"active-track":""}" onclick="setWorkshopStatus('${r.id}','${x}')">${x}</button>`).join("")}</div></div>`:`<div class="workshop-track"><h3>🏭 سحب الجهاز للورشة</h3><div class="hint">لو الجهاز يحتاج إصلاح داخل الورشة، سجّل سحبه هنا وسيظهر في أوامر الورشة ويمكن متابعة حالته حتى التسليم.</div><button type="button" class="secondary mini-action workshop-pull" onclick="requestWorkshopPull('${r.id}')">📦 سحب الجهاز للورشة</button></div>`;el.innerHTML=`<div class="profile request-one-page ps-context-target" data-ps-title="أمر الشغل ${esc(r.no)}"><div class="request-top"><div><h1 class="profile-title request-title">🛠️ ${esc(r.no)}</h1>${psActions("أمر الشغل "+r.no)}<span class="badge">${paid?"مدفوع بالكامل":esc(r.status)}${r.closed?" 🔒":""}</span></div><div class="compact-actions">${canEdit?`<button class='secondary mini-action' onclick="editRequest('${r.id}')">✏️ تعديل</button>`:""}</div></div><div class="request-grid"><div class="kv"><b>👤 العميل</b><a href="customer.html?id=${r.customerId}">${esc(customerName(r.customerId))}</a></div><div class="kv"><b>📞 التليفون</b>${contactLinksHtml(custPhone)}</div><div class="kv"><b>🔧 الجهاز</b><a href="device.html?id=${r.deviceId}">${esc(deviceName(r.deviceId))}</a></div><div class="kv"><b>📍 العنوان</b>${esc(addressText((arr(K.c).find(c=>c.id===r.customerId)||{}).mainAddress||{}))}</div><div class="kv"><b>⭐ الأولوية</b>${esc(r.priority||"عادية")}</div><div class="kv"><b>🏷️ التصنيف اليدوي</b>${canEdit?`<select class="inline-status" onchange="changeRequestTag('${r.id}',this.value)"><option value="" ${!r.tag?"selected":""}>بدون تصنيف</option>${(settings().orderTags||[]).map(x=>`<option ${r.tag===x?"selected":""}>${esc(x)}</option>`).join("")}<option value="__add__">➕ إضافة تصنيف جديد…</option></select>`:(esc(r.tag)||"بدون تصنيف")}</div><div class="kv"><b>📅 موعد الزيارة</b>${canEdit?`<input type="datetime-local" class="inline-status" value="${r.visit||""}" onchange="changeRequestVisit('${r.id}',this.value)">`:(r.visit?esc(new Date(r.visit).toLocaleString("ar-EG")) : "—")}</div><div class="kv"><b>🏠 التنفيذ</b>${r.executionPlace==="الورشة"?"🏭 الورشة":"🏠 عند العميل"}</div><div class="kv"><b>🧾 الحالة</b>${canEdit?`<select class="inline-status" onchange="changeRequestStatus('${r.id}',this.value)">${(settings().orderStatuses||[]).map(x=>`<option ${r.status===x?"selected":""}>${esc(x)}</option>`).join("")}</select>`:esc(r.status)}</div><div class="kv"><b>✅ تاريخ الانتهاء</b>${r.completedAt?esc(new Date(r.completedAt).toLocaleString("ar-EG")):"—"}</div><div class="kv"><b>🏭 حالة الورشة</b>${esc(ws)}</div><div class="kv request-wide"><b>📝 العطل</b>${esc(r.fault)||"—"}</div><div class="kv request-wide"><b>🔨 الأعمال</b>${esc(r.work)||"—"}</div><div class="request-account"><h3>💰 الحساب</h3><table class="month-table compact-money"><tr><td>🔨 المصنعية</td><td>${(+r.labor||0).toFixed(2)} ج</td></tr><tr><td>🔧 قطع الغيار</td><td>${(+r.partsTotal||0).toFixed(2)} ج</td></tr><tr class="total-row"><td>💰 الإجمالي</td><td>${(+r.total||0).toFixed(2)} ج</td></tr><tr><td>💵 العربون</td><td>${(+r.deposit||0).toFixed(2)} ج</td></tr><tr><td>💳 حالة الدفع</td><td>${paid?"تم الدفع بالكامل":"غير مكتمل"}</td></tr></table>${!r.closed&&r.status==="مكتمل"&&!paid?`<button type="button" class="primary pay-close-btn" onclick="markPaidAndClose('${r.id}')">💳 تم الدفع بالكامل وإغلاق الأمر</button>`:""}</div><div class="request-parts"><h3>🔧 قطع الغيار المستخدمة</h3>${parts||"<div class='empty-inline'>لا توجد قطع غيار مضافة.</div>"}${canEdit?`<div class="part-add request-part-add"><select id="rpPart" onchange="syncRequestPartQty()"><option value="">اختر قطعة</option>${stockOptions}</select><input id="rpQty" type="number" min="1" value="1" inputmode="numeric"><button type="button" class="primary mini-action" onclick="confirmAddPartToRequest('${r.id}')">➕ إضافة من المخزن</button></div><div id="rpStockHint" class="hint">اختر قطعة لمعرفة الكمية المتاحة.</div><div class="part-add request-part-add part-add-external"><input id="rpExtName" type="text" placeholder="اسم القطعة (خارج المخزن)"><input id="rpExtBuy" type="number" min="0" step=".01" placeholder="سعر الشراء"><input id="rpExtSell" type="number" min="0" step=".01" placeholder="سعر البيع"><input id="rpExtQty" type="number" min="1" value="1" inputmode="numeric"><button type="button" class="secondary mini-action" onclick="confirmAddExternalPartToRequest('${r.id}')">🧳 إضافة قطعة خارج المخزن</button></div><div class="hint">قطعة خارج المخزن: بتتسجل بسعر البيع بالكامل ضمن "قطع الغيار" واحتساب الإجمالي زي أي قطعة عادية بالظبط، وسعر الشراء بيظهر كملاحظة بس للمرجعية. مالهاش أي علاقة بكمية المخزن أو رصيده أو بند "المصنعية".</div>`:""}</div>${workshopTrack}</div></div>`}
@@ -370,12 +200,14 @@ function movePartCategory(i,d){let s=settings(),a=s.partCats,j=i+d;if(j<0||j>=a.
 function renameBrand(x){let n=prompt("الاسم الجديد للماركة",x);if(!n||n===x)return;let s=settings(),i=s.brands.indexOf(x);if(i>=0)s.brands[i]=n;put(K.s,s);settingsPage()}
 function renamePartCategory(x){let n=prompt("الاسم الجديد للتصنيف",x);if(!n||n===x)return;let s=settings(),i=s.partCats.indexOf(x);if(i>=0)s.partCats[i]=n;put(K.s,s);settingsPage()}
 
-function initParts(){let f=document.getElementById("partForm");if(!f)return;let q=new URLSearchParams(location.search),editId=q.get("edit"),existing=editId?arr(K.p).find(x=>x.id===editId):null;fillPartCats(pCategory,existing?.category||"");pPhoto.onchange=e=>previewPart(e);if(existing){pName.value=existing.name||"";pCode.value=existing.code||"";pLocation.value=existing.location||"";pQty.value=existing.qty||0;pMin.value=existing.min||0;pBuy.value=existing.buy||0;pUse.value=existing.use||0;if(existing.photo)partPhotoPreview.innerHTML=`<img class="photo" src="${existing.photo}">`;f.classList.remove("hidden");f.querySelector(".primary").textContent="💾 حفظ التعديلات وفتح الملف"}f.onsubmit=e=>savePart(e,existing);partSearch.oninput=renderParts;renderParts()}
+function initParts(){let f=document.getElementById("partForm");if(!f)return;let q=new URLSearchParams(location.search),editId=q.get("edit"),existing=editId?arr(K.p).find(x=>x.id===editId):null;fillPartCats(pCategory,existing?.category||"");pPhoto.onchange=e=>previewPart(e);if(existing){pName.value=existing.name||"";pCode.value=existing.code||"";pLocation.value=existing.location||"";pQty.value=existing.qty||0;pMin.value=existing.min||0;pBuy.value=existing.buy||0;pUse.value=existing.use||0;if(existing.photo){(async()=>{let src=window.ImageStore?await window.ImageStore.resolveSrc(existing.photo):existing.photo;if(src)partPhotoPreview.innerHTML=`<img class="photo" src="${src}">`})()}f.classList.remove("hidden");f.querySelector(".primary").textContent="💾 حفظ التعديلات وفتح الملف"}f.onsubmit=e=>savePart(e,existing);partSearch.oninput=renderParts;renderParts()}
 function fillPartCats(el,selected=""){el.innerHTML='<option value="">اختر التصنيف</option>'+settings().partCats.map(x=>`<option ${x===selected?"selected":""}>${esc(x)}</option>`).join("")}
 function previewPart(e){let f=e.target.files[0];if(!f)return;imageToDataURL(f).then(x=>{partPhotoPreview.innerHTML=`<img class="photo" src="${x}">`;partPhotoPreview.dataset.image=x})}
-async function savePart(e,existing=null){e.preventDefault();try{let photo=pPhoto.files[0]?await imageToDataURL(pPhoto.files[0]):(existing?.photo||"");let p=existing||{id:id(),createdAt:new Date().toISOString()};Object.assign(p,{name:pName.value,code:pCode.value,category:pCategory.value,location:pLocation.value,qty:+pQty.value||0,min:+pMin.value||0,buy:+pBuy.value||0,use:+pUse.value||0,photo});let a=arr(K.p);if(!saveJSONSafe(K.p,existing?a.map(x=>x.id===p.id?p:x):a.concat(p)))return;location.href=`part.html?id=${p.id}`}catch(err){alert("تعذر حفظ صورة القطعة. جرّب صورة أخرى أصغر.")}}
+async function collectPartFormData(existing){let photo=existing?.photo||"";if(pPhoto.files[0]){let dataURL=await imageToDataURL(pPhoto.files[0]);photo=window.ImageStore?await window.ImageStore.save(dataURL,existing?.photo):dataURL}return{name:pName.value,code:pCode.value,category:pCategory.value,location:pLocation.value,qty:+pQty.value||0,min:+pMin.value||0,buy:+pBuy.value||0,use:+pUse.value||0,photo}}
+function persistPartRecord(formData,existing){let p=existing||{id:id(),createdAt:new Date().toISOString()};Object.assign(p,formData);let a=arr(K.p);if(!saveJSONSafe(K.p,existing?a.map(x=>x.id===p.id?p:x):a.concat(p)))return{ok:false};return{ok:true,part:p}}
+async function savePart(e,existing=null){e.preventDefault();try{let formData=await collectPartFormData(existing);let result=persistPartRecord(formData,existing);if(!result.ok)return;location.href=`part.html?id=${result.part.id}`}catch(err){alert("تعذر حفظ صورة القطعة. جرّب صورة أخرى أصغر.")}}
 function renderParts(){let el=document.getElementById("partList");if(!el)return;let q=(partSearch?.value||"").toLowerCase();let a=arr(K.p).filter(p=>(p.name+" "+p.code+" "+p.location).toLowerCase().includes(q));el.innerHTML=a.length?a.map(p=>{let pct=(+p.use||0)>0?(((+p.use||0)-(+p.buy||0))/(+p.use||0)*100):0;return `<div class="item ps-context-target" data-ps-title="قطعة ${esc(p.name)}"><div class="item-head"><a href="part.html?id=${p.id}"><b>📦 ${esc(p.name)}</b></a>${psActions("قطعة "+p.name)}<span class="badge">${p.qty} قطعة</span></div><div>${esc(p.category)} • 📍 ${esc(p.location)||"—"}</div><div>شراء ${p.buy} ج • استخدام ${p.use} ج • 📈 ربح ${pct.toFixed(1)}%</div></div>`}).join(""):'<div class="item">لا توجد قطع.</div>'}
-function partProfile(){let el=document.getElementById("partProfile");if(!el)return;let p=arr(K.p).find(x=>x.id===new URLSearchParams(location.search).get("id"));if(!p){el.innerHTML="<div class='item'>القطعة غير موجودة.</div>";return}let moves=arr(K.m).filter(x=>x.partId===p.id).slice(-10).reverse();let profitVal=(+p.use||0)-(+p.buy||0),profitPct=(+p.use||0)>0?(profitVal/(+p.use||0)*100):0;el.innerHTML=`<div class="profile ps-context-target" data-ps-title="قطعة ${esc(p.name)}"><div class="page-head"><h1 class="profile-title">📦 ${esc(p.name)}</h1><div class="compact-actions"><button class="secondary" onclick="editPart('${p.id}')">✏️ تعديل</button>${psActions("قطعة "+p.name)}</div></div><div class="profile-grid"><div class="kv"><b>الكود</b>${esc(p.code)||"—"}</div><div class="kv"><b>التصنيف</b>${esc(p.category)}</div><div class="kv"><b>المكان</b>📍 ${esc(p.location)||"—"}</div><div class="kv"><b>الكمية</b>${p.qty}</div><div class="kv"><b>الحد الأدنى</b>${p.min}</div><div class="kv"><b>سعر الشراء</b>${p.buy} ج</div><div class="kv"><b>سعر الاستخدام</b>${p.use} ج</div><div class="kv"><b>📈 مكسب القطعة</b>${profitVal.toFixed(2)} ج (${profitPct.toFixed(1)}%)</div></div>${p.photo?`<img class="photo" src="${p.photo}">`:""}<h2>🔄 آخر حركات المخزن</h2>${moves.length?moves.map(x=>`<div class="item">${esc(x.type)} • ${x.qty} • ${new Date(x.at).toLocaleString("ar-EG")}</div>`).join(""):"<div class='item'>لا توجد حركات.</div>"}</div>`}
+async function partProfile(){let el=document.getElementById("partProfile");if(!el)return;let p=arr(K.p).find(x=>x.id===new URLSearchParams(location.search).get("id"));if(!p){el.innerHTML="<div class='item'>القطعة غير موجودة.</div>";return}let moves=arr(K.m).filter(x=>x.partId===p.id).slice(-10).reverse();let profitVal=(+p.use||0)-(+p.buy||0),profitPct=(+p.use||0)>0?(profitVal/(+p.use||0)*100):0;el.innerHTML=`<div class="profile ps-context-target" data-ps-title="قطعة ${esc(p.name)}"><div class="page-head"><h1 class="profile-title">📦 ${esc(p.name)}</h1><div class="compact-actions"><button class="secondary" onclick="editPart('${p.id}')">✏️ تعديل</button>${psActions("قطعة "+p.name)}</div></div><div class="profile-grid"><div class="kv"><b>الكود</b>${esc(p.code)||"—"}</div><div class="kv"><b>التصنيف</b>${esc(p.category)}</div><div class="kv"><b>المكان</b>📍 ${esc(p.location)||"—"}</div><div class="kv"><b>الكمية</b>${p.qty}</div><div class="kv"><b>الحد الأدنى</b>${p.min}</div><div class="kv"><b>سعر الشراء</b>${p.buy} ج</div><div class="kv"><b>سعر الاستخدام</b>${p.use} ج</div><div class="kv"><b>📈 مكسب القطعة</b>${profitVal.toFixed(2)} ج (${profitPct.toFixed(1)}%)</div></div><div id="partProfilePhoto"></div><h2>🔄 آخر حركات المخزن</h2>${moves.length?moves.map(x=>`<div class="item">${esc(x.type)} • ${x.qty} • ${new Date(x.at).toLocaleString("ar-EG")}</div>`).join(""):"<div class='item'>لا توجد حركات.</div>"}</div>`;if(p.photo){let src=window.ImageStore?await window.ImageStore.resolveSrc(p.photo):p.photo;let ph=document.getElementById("partProfilePhoto");if(ph&&src)ph.innerHTML=`<img class="photo" src="${src}">`}}
 function listEditorHtml(title,key,icon){
   let a=settings()[key]||[];
   return `<section class="panel setting-list-panel"><div class="page-head"><h2>${icon} ${title}</h2><button class="secondary mini-action" onclick="addSettingItem('${key}')">➕ إضافة</button></div><div class="drag-hint">☷ اسحب أي عنصر وأفلته في المكان المطلوب</div><div id="list-${key}" class="sortable-list">${a.map((x,i)=>`<div class="setting-row drag-item" draggable="true" data-drag-kind="list" data-drag-key="${esc(key)}" data-drag-index="${i}"><span class="drag-handle" title="سحب للترتيب">☷</span><span class="setting-name"><b>${i+1}.</b> ${esc(x)}</span><span class="compact-actions"><input class="order-number" type="number" min="1" max="${a.length}" value="${i+1}" title="رقم الترتيب" onchange="setListPosition('${key}',${i},this.value)"><button class="secondary mini-action" onclick="renameSettingItem('${key}',${i})">✏️</button><button class="secondary mini-action" onclick="deleteSettingItem('${key}',${i})">🗑️</button></span></div>`).join("")}</div></section>`
@@ -545,12 +377,17 @@ function initFollowupPage(){
 }
 function deleteAllOperationalData(){if(!confirm("سيتم حذف العملاء والأجهزة وأوامر الشغل وقطع الغيار وحركات المخزن والمصاريف وحركات الخزنة. الإعدادات والمراكز والقرى لن تتأثر. هل تريد المتابعة؟"))return;if(!confirm("تأكيد نهائي جدًا: حذف كل البيانات التشغيلية؟"))return;[K.c,K.d,K.r,K.p,K.m,K.e,K.tr].forEach(k=>put(k,[]));alert("تم حذف كل البيانات التشغيلية. سيتم تحديث الصفحة.");location.reload()}
 
-// النسخة الاحتياطية: تصدير كل بيانات النظام كملف JSON، واسترجاعها لاحقًا.
-function backupAllData(){
+// النسخة الاحتياطية: تصدير كل بيانات النظام (localStorage) + كل الصور
+// (IndexedDB عبر ImageStore) كملف JSON واحد، واسترجاعها لاحقًا.
+// ملحوظة: الصور بقت مخزنة في IndexedDB (image-store.js) مش جوه سجلات
+// localStorage، فلازم الباك أب يجيبها بنفسه ويحطها في نفس ملف الـ JSON
+// عشان الملف يفضل نسخة واحدة كاملة زي ما كان قبل كده تمامًا.
+async function backupAllData(){
   let data={};
   Object.values(K).forEach(k=>{data[k]=get(k,null)});
   data.wf_notif_enabled=localStorage.getItem("wf_notif_enabled");
-  data._meta={exportedAt:new Date().toISOString(),app:"الورشة الفنية",version:1};
+  data.images=window.ImageStore?await window.ImageStore.exportAll():{};
+  data._meta={exportedAt:new Date().toISOString(),app:"الورشة الفنية",version:1,schemaVersion:window.getSchemaVersion?window.getSchemaVersion():1};
   let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   let url=URL.createObjectURL(blob);
   let stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
@@ -559,20 +396,25 @@ function backupAllData(){
   document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
-function restoreBackupFile(input){
+async function restoreBackupFile(input){
   let file=input?.files?.[0];
   if(!file)return;
-  if(!confirm('⚠️ استيراد نسخة احتياطية هيستبدل كل بيانات النظام الحالية (العملاء والأجهزة وأوامر الشغل والمخزن والخزنة والمهام) بالبيانات اللي في الملف، ومينفعش يترجع بعد كده.\n\nهل أنت متأكد إنك عايز تكمل؟')){input.value="";return}
+  if(!confirm('⚠️ استيراد نسخة احتياطية هيستبدل كل بيانات النظام الحالية (العملاء والأجهزة وأوامر الشغل والمخزن والخزنة والمهام والصور) بالبيانات اللي في الملف، ومينفعش يترجع بعد كده.\n\nهل أنت متأكد إنك عايز تكمل؟')){input.value="";return}
   let reader=new FileReader();
-  reader.onload=()=>{
+  reader.onload=async()=>{
     try{
       let data=JSON.parse(reader.result);
       if(!data||typeof data!=="object")throw new Error("bad");
       let keys=Object.values(K);
       let hasAny=keys.some(k=>k in data);
       if(!hasAny)throw new Error("empty");
+      // لو الملف من نسخة أقدم من إضافة schemaVersion، نعتبره إصدار 1
+      // ونسيب الترحيل العادي (migrations.js) يشتغل بعد كده زي أي بيانات قديمة.
+      let backupSchema=data._meta?.schemaVersion||1;
       keys.forEach(k=>{if(k in data)put(k,data[k])});
       if("wf_notif_enabled" in data && data.wf_notif_enabled!=null)localStorage.setItem("wf_notif_enabled",data.wf_notif_enabled);
+      if(data.images && window.ImageStore)await window.ImageStore.importAll(data.images);
+      if(window.setSchemaVersion)window.setSchemaVersion(Math.min(backupSchema,window.CURRENT_SCHEMA_VERSION||backupSchema));
       alert("✅ تم استرجاع النسخة الاحتياطية بنجاح. هيتم فتح الرئيسية الآن.");
       location.href="index.html";
     }catch(e){
@@ -649,7 +491,12 @@ function contactLinksHtml(phone){
   return `<a class="tel-link" href="tel:${esc(phone)}">📲 ${esc(phone)}</a>${wa?` <a class="wa-link" href="https://wa.me/${wa}" target="_blank" rel="noopener">💬 واتساب</a>`:""}`;
 }
 
-document.addEventListener("DOMContentLoaded",()=>{settings();normalizeOrderNumbers();renderDash();monthReport();document.getElementById("reportMonth")?.addEventListener("change",financeReport);document.getElementById("reportWeek")?.addEventListener("change",financeReport);initCustomers();customerProfile();initDevices();deviceProfile();initRequests();requestProfile();initParts();partProfile();initTasks();settingsPage();renderTreasury();initQuickOrder();initRoutePage();initFollowupPage()})
+document.addEventListener("DOMContentLoaded",async()=>{
+  // لازم الترحيل (migrations.js) يخلص قبل أول رندر بيقرأ حقل photo،
+  // عشان ميحصلش سباق بين "لسه base64" و"بقى مرجع IndexedDB".
+  if(window.runMigrations){try{await window.runMigrations()}catch(e){console.error("[app] فشل تشغيل الترحيلات",e)}}
+  settings();normalizeOrderNumbers();renderDash();monthReport();document.getElementById("reportMonth")?.addEventListener("change",financeReport);document.getElementById("reportWeek")?.addEventListener("change",financeReport);initCustomers();customerProfile();initDevices();deviceProfile();initRequests();requestProfile();initParts();partProfile();initTasks();settingsPage();renderTreasury();initQuickOrder();initRoutePage();initFollowupPage()
+})
 
 // Quick-create relations: create the missing entity without leaving the current workflow.
 function setupQuickLocation(prefix){

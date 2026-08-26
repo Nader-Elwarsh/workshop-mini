@@ -42,12 +42,12 @@
     if (/مايكروويف/.test(c)) return CATEGORY_ICONS.microwave;
     return CATEGORY_ICONS.box;
   };
-  const rows = (key) => {
-    try { return JSON.parse(localStorage.getItem(key) || "[]"); }
-    catch { return []; }
-  };
-  const save = (key, value) => localStorage.setItem(key, JSON.stringify(value));
-  const esc2 = (v) => typeof esc === "function" ? esc(v) : String(v ?? "");
+  // rows/save/esc2: كانت بتعيد تعريف نفس منطق القراءة/الكتابة والـ escaping
+  // اللي في app.js بالظبط (JSON.parse/localStorage مباشرة). دلوقتي بتنادي
+  // على النسخة الموحّدة في shared-data.js (لازم يتحمّل قبل الملف ده).
+  const rows = (key) => arr(key);
+  const save = (key, value) => put(key, value);
+  const esc2 = (v) => esc(v);
   const customerRows = () => rows("wf_c");
   const deviceRows = () => rows("wf_d");
   const requestRows = () => rows("wf_r");
@@ -185,7 +185,7 @@
     return true;
   }
 
-  window.renderCustomers = function () {
+  defineOverride("renderCustomers", "workshop-mini-simple-ui.js", function () {
     const el = $("customerList");
     if (!el) return;
     const all = customerRows();
@@ -245,7 +245,7 @@
           <small>🔧 ${ds} أجهزة • 🛠️ ${rs} أوامر${ao ? ` • 🔴 ${ao} فعال` : ""}${hw ? " • 🏭 جهاز في الورشة" : ""}</small>
         </div><div class="simple-record-actions"><a class="secondary small-btn" href="customer.html?id=${c.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteCustomerRecord('${c.id}')">حذف</button></div></div>`;
       }).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
-  };
+  });
 
   /* ---------- الأجهزة ---------- */
   window.showAllDevices = function () {
@@ -276,7 +276,7 @@
     return true;
   }
 
-  window.renderDevices = function () {
+  defineOverride("renderDevices", "workshop-mini-simple-ui.js", function () {
     const el = $("deviceList");
     if (!el) return;
     const all = deviceRows();
@@ -314,7 +314,7 @@
       ({active:"عليه أمر مفتوح حاليًا", workshop:"موجود في الورشة", completed:"كل أوامره مكتملة", none:"بدون أي أمر شغل", recurring:"🔁 متكرر الأعطال"}[bucket] || "كل الأجهزة");
     el.innerHTML = `<div class="simple-list-head"><b>${title}</b><button type="button" class="secondary small-btn" onclick="hideAllDevices()">رجوع للملخص</button></div>
       ${filtered.length ? filtered.map(d => `<div class="simple-record"><div class="simple-record-icon">🔧</div><div class="simple-record-main"><a href="device.html?id=${d.id}"><b>${esc2(d.type)} — ${esc2(d.brand)}</b></a><span>${esc2(d.category||"—")} • ${esc2(d.model||"بدون موديل")}</span><small>👤 ${esc2(customerName(d.customerId))}${activeOrdersForDevice(d.id).length ? ` • 🔴 ${activeOrdersForDevice(d.id).length} أمر فعال` : ""}${hasWorkshopDevice(d.id) ? " • 🏭 في الورشة" : ""}</small></div><div class="simple-record-actions"><a class="secondary small-btn" href="device.html?id=${d.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteDeviceRecord('${d.id}')">حذف</button></div></div>`).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
-  };
+  });
 
   /* ---------- المخزن ---------- */
   window.showAllParts = function () {
@@ -575,7 +575,7 @@
     if (el) el.innerHTML = "";
   };
 
-  window.renderRequests = function () {
+  defineOverride("renderRequests", "workshop-mini-simple-ui.js", function () {
     const el = $("requestList");
     if (!el) return;
 
@@ -636,7 +636,7 @@
           </div>
         </div>`;
       }).join("") : `<div class="item">لا توجد أوامر في هذا القسم.</div>`}`;
-  };
+  });
 
   /* ---------- الإغلاق: الحالة تصبح مكتملة ويُسجل الإغلاق ---------- */
   window.markPaidAndClose = function (i) {

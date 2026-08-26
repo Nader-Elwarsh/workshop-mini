@@ -1,4 +1,4 @@
-const CACHE_NAME = "workshop-v11-15-precache-fix";
+const CACHE_NAME = "workshop-v11-22-treasury-tasks-split";
 importScripts("./notif-shared.js");
 const CORE_FILES = [
   "./",
@@ -18,6 +18,11 @@ const CORE_FILES = [
   "./tasks.html",
   "./reports.html",
   "./style.css",
+  "./shared-data.js",
+  "./image-store.js",
+  "./migrations.js",
+  "./treasury.js",
+  "./tasks.js",
   "./app.js",
   "./workshop-mini-simple-ui.js",
   "./workshop-mini-enhancements.js",

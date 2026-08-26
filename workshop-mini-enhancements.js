@@ -5,37 +5,15 @@
 (function () {
   "use strict";
 
-  // Existing app.js calls this helper when saving customers, but the current
-  // mini build does not define it. Keep the duplicate warning without
-  // preventing creation.
-  window.duplicateCustomerByPhone = function (phone, excludeId) {
-    const normalized = String(phone || "").replace(/\s+/g, "").trim();
-    if (!normalized) return null;
-    const rows = typeof arr === "function" && typeof K === "object" ? arr(K.c) : [];
-    return rows.find(function (c) {
-      return String(c.id) !== String(excludeId || "") &&
-             String(c.phone || "").replace(/\s+/g, "").trim() === normalized;
-    }) || null;
-  };
-
-  function customerRows() {
-    return JSON.parse(localStorage.getItem("wf_c") || "[]");
-  }
-  function deviceRows() {
-    return JSON.parse(localStorage.getItem("wf_d") || "[]");
-  }
-  function requestRows() {
-    return JSON.parse(localStorage.getItem("wf_r") || "[]");
-  }
-  function stockRows() {
-    return JSON.parse(localStorage.getItem("wf_p") || "[]");
-  }
-  function moveRows() {
-    return JSON.parse(localStorage.getItem("wf_m") || "[]");
-  }
-  function save(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-  }
+  // duplicateCustomerByPhone وقراءة/كتابة العملاء والأجهزة وأوامر الشغل
+  // والمخزون والحركات: كانت متكررة هنا بنفس منطق app.js بالظبط. اتوحّدت
+  // في shared-data.js (K/arr/put) — الملف ده لازم يتحمّل بعده.
+  function customerRows() { return arr(K.c); }
+  function deviceRows() { return arr(K.d); }
+  function requestRows() { return arr(K.r); }
+  function stockRows() { return arr(K.p); }
+  function moveRows() { return arr(K.m); }
+  function save(key, value) { put(key, value); }
   function restorePartsForRequests(requests) {
     const stock = stockRows();
     (requests || []).forEach(function (r) {
@@ -49,7 +27,7 @@
 
   // Customer search: keep the existing UI, but search all useful customer
   // fields including both addresses and make Arabic/phone matching forgiving.
-  window.renderCustomers = function () {
+  defineOverride("renderCustomers", "workshop-mini-enhancements.js", function () {
     const el = document.getElementById("customerList");
     if (!el) return;
     const raw = (document.getElementById("customerSearch")?.value || "").toLowerCase().trim();
@@ -84,10 +62,10 @@
         </div>
       </div>`;
     }).join("") : '<div class="item">لا توجد نتائج.</div>';
-  };
+  });
 
   // Customer 360°: same page, clearer summary and linked records.
-  window.customerProfile = function () {
+  defineOverride("customerProfile", "workshop-mini-enhancements.js", function () {
     const el = document.getElementById("customerProfile");
     if (!el) return;
     const idValue = new URLSearchParams(location.search).get("id");
@@ -153,12 +131,12 @@
         </div>`;
       }).join("") : "<div class='item'>لا توجد أوامر.</div>"}
     `;
-  };
+  });
 
   // Individual customer deletion is allowed in the experimental build.
   // It warns clearly and removes dependent devices/orders so no orphan
   // records remain. Parts used by those orders return to stock.
-  window.deleteCustomerRecord = function (cid) {
+  defineOverride("deleteCustomerRecord", "workshop-mini-enhancements.js", function (cid) {
     const c = customerRows().find(function (x) { return x.id === cid; });
     if (!c) return;
 
@@ -184,18 +162,14 @@
     save("wf_d", deviceRows().filter(function (d) { return d.customerId !== cid; }));
     save("wf_c", customerRows().filter(function (x) { return x.id !== cid; }));
 
-    window.renderCustomers?.();
-    window.renderDevices?.();
-    window.renderRequests?.();
-    window.renderDash?.();
-    window.monthReport?.();
+    refreshAllScreens();
 
     alert("تم حذف العميل والبيانات المرتبطة به بنجاح.");
-  };
+  });
 
   // Device deletion is also allowed for testing, with confirmation.
   // Linked orders are removed and their used parts are returned to stock.
-  window.deleteDeviceRecord = function (did) {
+  defineOverride("deleteDeviceRecord", "workshop-mini-enhancements.js", function (did) {
     const d = deviceRows().find(function (x) { return x.id === did; });
     if (!d) return;
 
@@ -215,17 +189,13 @@
     save("wf_r", requestRows().filter(function (r) { return r.deviceId !== did; }));
     save("wf_d", deviceRows().filter(function (x) { return x.id !== did; }));
 
-    window.renderDevices?.();
-    window.renderRequests?.();
-    window.renderCustomers?.();
-    window.renderDash?.();
-    window.monthReport?.();
+    refreshAllScreens();
 
     alert("تم حذف الجهاز والبيانات المرتبطة به بنجاح.");
-  };
+  });
 
   // Device search: keep the existing search but include model/description.
-  window.renderDevices = function () {
+  defineOverride("renderDevices", "workshop-mini-enhancements.js", function () {
     const el = document.getElementById("deviceList");
     if (!el) return;
     const q = (document.getElementById("deviceSearch")?.value || "").toLowerCase().trim();
@@ -253,7 +223,7 @@
         </div>
       </div>`;
     }).join("") : '<div class="item">لا توجد أجهزة.</div>';
-  };
+  });
 
   // Run after app.js has initialized the page.
   document.addEventListener("DOMContentLoaded", function () {
