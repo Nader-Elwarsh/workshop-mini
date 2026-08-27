@@ -352,7 +352,7 @@
   window.renderParts = function () {
     const el = $("partList");
     if (!el) return;
-    const all = partRows();
+    const all = partRows().filter(p => !p.archived);
 
     if (!state.parts) {
       const cats = {};
@@ -403,6 +403,7 @@
             <small>📍 ${esc2(p.location || "—")} • شراء ${(+p.buy||0).toFixed(2)} ج • استخدام ${(+p.use||0).toFixed(2)} ج • 📈 ${((+p.use||0)>0?(((+p.use||0)-(+p.buy||0))/(+p.use||0)*100):0).toFixed(1)}%</small>
           </div>
           <span class="simple-qty ${(+p.qty||0) <= (+p.min||0) ? "low" : ""}">${+p.qty||0}</span>
+          <div class="simple-record-actions"><a class="secondary small-btn" href="part.html?id=${p.id}">فتح</a><button type="button" class="danger-btn small-btn" onclick="deletePartRecord('${p.id}')">🗑️ حذف</button></div>
         </div>`).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
   };
 
@@ -650,6 +651,7 @@
     if (!confirm("تأكيد استلام كامل قيمة الأمر وإغلاقه نهائيًا؟ بعد التأكيد لن يمكن التعديل.")) return;
 
     const now = new Date().toISOString();
+    const collected = Math.max(0, (+r.total || 0) - (+r.deposit || 0));
     r.status = "مكتمل";
     r.paid = true;
     r.remain = 0;
@@ -659,6 +661,7 @@
     r.closedStatus = "مغلق";
 
     save("wf_r", a);
+    if (typeof syncTreasuryForOrderClose === "function") syncTreasuryForOrderClose(r, collected);
     location.reload();
   };
 

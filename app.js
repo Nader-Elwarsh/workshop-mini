@@ -200,14 +200,35 @@ function movePartCategory(i,d){let s=settings(),a=s.partCats,j=i+d;if(j<0||j>=a.
 function renameBrand(x){let n=prompt("الاسم الجديد للماركة",x);if(!n||n===x)return;let s=settings(),i=s.brands.indexOf(x);if(i>=0)s.brands[i]=n;put(K.s,s);settingsPage()}
 function renamePartCategory(x){let n=prompt("الاسم الجديد للتصنيف",x);if(!n||n===x)return;let s=settings(),i=s.partCats.indexOf(x);if(i>=0)s.partCats[i]=n;put(K.s,s);settingsPage()}
 
-function initParts(){let f=document.getElementById("partForm");if(!f)return;let q=new URLSearchParams(location.search),editId=q.get("edit"),existing=editId?arr(K.p).find(x=>x.id===editId):null;fillPartCats(pCategory,existing?.category||"");pPhoto.onchange=e=>previewPart(e);if(existing){pName.value=existing.name||"";pCode.value=existing.code||"";pLocation.value=existing.location||"";pQty.value=existing.qty||0;pMin.value=existing.min||0;pBuy.value=existing.buy||0;pUse.value=existing.use||0;if(existing.photo){(async()=>{let src=window.ImageStore?await window.ImageStore.resolveSrc(existing.photo):existing.photo;if(src)partPhotoPreview.innerHTML=`<img class="photo" src="${src}">`})()}f.classList.remove("hidden");f.querySelector(".primary").textContent="💾 حفظ التعديلات وفتح الملف"}f.onsubmit=e=>savePart(e,existing);partSearch.oninput=renderParts;renderParts()}
+function normalizePartText(v){
+  return String(v||"").toLowerCase().normalize("NFKC")
+    .replace(/[\u064B-\u065F\u0670]/g,"")
+    .replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/[ـ]/g,"")
+    .replace(/[٠-٩]/g,d=>String(d.charCodeAt(0)-0x0660))
+    .replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-0x06F0))
+    .replace(/[\s\-_./\\]+/g,"").trim();
+}
+function findDuplicatePartName(name,excludeId){const n=normalizePartText(name);if(!n)return null;return arr(K.p).find(p=>String(p.id)!==String(excludeId||"")&&!p.archived&&normalizePartText(p.name)===n)||null;}
+function findSimilarPartNames(name,excludeId,limit){
+  const n=normalizePartText(name);if(!n)return [];
+  return arr(K.p)
+    .filter(p=>String(p.id)!==String(excludeId||"")&&!p.archived&&p.name)
+    .filter(p=>{const pn=normalizePartText(p.name);return pn!==n&&pn.startsWith(n);})
+    .map(p=>p.name)
+    .slice(0,limit||8);
+}
+function findDuplicatePartCode(code,excludeId){const n=String(code||"").trim().toLowerCase();if(!n)return null;return arr(K.p).find(p=>String(p.id)!==String(excludeId||"")&&!p.archived&&String(p.code||"").trim().toLowerCase()===n)||null;}
+function deletePartRecord(pid){const all=arr(K.p),p=all.find(x=>x.id===pid);if(!p)return;const usedInOrders=arr(K.r).filter(r=>(r.parts||[]).some(x=>x.partId===pid));const movements=arr(K.m).filter(m=>m.partId===pid);if(usedInOrders.length){if(!p.archived&&confirm(`⚠️ الصنف «${p.name||""}» مستخدم في ${usedInOrders.length} أمر شغل سابق.\n\nحذفه سيكسر تاريخ أوامر الشغل، لذلك الأفضل أرشفته بدل حذفه.\n\nموافق = أرشفة الصنف وإخفاؤه من المخزن.`)){p.archived=true;p.archivedAt=new Date().toISOString();put(K.p,all);renderParts?.();alert("تمت أرشفة الصنف وسيظل محفوظًا داخل تاريخ أوامر الشغل.");}else if(p.archived){alert("الصنف مؤرشف بالفعل وما زال مرتبطًا بتاريخ أوامر شغل.");}return;}if(!confirm(`حذف الصنف «${p.name||""}» نهائيًا؟\n\nالكمية الحالية: ${+p.qty||0}\nحركات المخزن المرتبطة: ${movements.length}`))return;put(K.p,all.filter(x=>x.id!==pid));if(window.ImageStore?.delete&&p.photo)window.ImageStore.delete(p.photo);if(movements.length)put(K.m,arr(K.m).filter(m=>m.partId!==pid));refreshAllScreens?.();renderParts?.();if(document.getElementById("partProfile"))location.href="inventory.html";}
+function restorePartRecord(pid){const all=arr(K.p),p=all.find(x=>x.id===pid);if(!p)return;p.archived=false;p.archivedAt="";put(K.p,all);renderParts?.();location.href="inventory.html";}
+
+function initParts(){let f=document.getElementById("partForm");if(!f)return;let q=new URLSearchParams(location.search),editId=q.get("edit"),existing=editId?arr(K.p).find(x=>x.id===editId):null;fillPartCats(pCategory,existing?.category||"");pPhoto.onchange=e=>previewPart(e);if(existing){pName.value=existing.name||"";pCode.value=existing.code||"";pLocation.value=existing.location||"";pQty.value=existing.qty||0;pMin.value=existing.min||0;pBuy.value=existing.buy||0;pUse.value=existing.use||0;if(existing.photo){(async()=>{let src=window.ImageStore?await window.ImageStore.resolveSrc(existing.photo):existing.photo;if(src)partPhotoPreview.innerHTML=`<img class="photo" src="${src}">`})()}f.classList.remove("hidden");f.querySelector(".primary").textContent="💾 حفظ التعديلات وفتح الملف"}f.onsubmit=async e=>{e.preventDefault();const dup=findDuplicatePartName(pName.value,existing?.id);if(dup){alert(`⚠️ الصنف «${dup.name}» موجود بالفعل بنفس الاسم.\\n\\nاستخدم الصنف الموجود أو غيّر الاسم.`);pName.focus();return;}const dupCode=findDuplicatePartCode(pCode.value,existing?.id);if(dupCode){alert(`⚠️ كود الصنف «${dupCode.code}» مستخدم بالفعل مع «${dupCode.name}».\\n\\nاستخدم كودًا مختلفًا.`);pCode.focus();return;}await savePart(e,existing);};const partDuplicateHint=document.getElementById("partDuplicateHint");const checkPartDuplicate=()=>{if(!partDuplicateHint)return;const dn=findDuplicatePartName(pName.value,existing?.id),dc=findDuplicatePartCode(pCode.value,existing?.id);if(dn){partDuplicateHint.innerHTML=`⚠️ يوجد صنف بنفس الاسم بالضبط: <b>${esc(dn.name)}</b> — لن يسمح النظام بإضافة نسخة ثانية منه.`;partDuplicateHint.className="hint negative";return;}if(dc){partDuplicateHint.innerHTML=`⚠️ الكود مستخدم بالفعل مع: <b>${esc(dc.name)}</b> — اختر كودًا مختلفًا.`;partDuplicateHint.className="hint negative";return;}const similar=findSimilarPartNames(pName.value,existing?.id);if(similar.length){partDuplicateHint.innerHTML=`ℹ️ توجد أصناف بأسماء قريبة من هذا الاسم: ${similar.map(x=>`<b>${esc(x)}</b>`).join("، ")}. تأكد أن الصنف الذي تكتبه ليس نفسه قبل الحفظ.`;partDuplicateHint.className="hint";return;}partDuplicateHint.textContent="";partDuplicateHint.className="hint";};pName.addEventListener("input",checkPartDuplicate);pCode.addEventListener("input",checkPartDuplicate);partSearch.oninput=renderParts;renderParts()}
 function fillPartCats(el,selected=""){el.innerHTML='<option value="">اختر التصنيف</option>'+settings().partCats.map(x=>`<option ${x===selected?"selected":""}>${esc(x)}</option>`).join("")}
 function previewPart(e){let f=e.target.files[0];if(!f)return;imageToDataURL(f).then(x=>{partPhotoPreview.innerHTML=`<img class="photo" src="${x}">`;partPhotoPreview.dataset.image=x})}
 async function collectPartFormData(existing){let photo=existing?.photo||"";if(pPhoto.files[0]){let dataURL=await imageToDataURL(pPhoto.files[0]);photo=window.ImageStore?await window.ImageStore.save(dataURL,existing?.photo):dataURL}return{name:pName.value,code:pCode.value,category:pCategory.value,location:pLocation.value,qty:+pQty.value||0,min:+pMin.value||0,buy:+pBuy.value||0,use:+pUse.value||0,photo}}
 function persistPartRecord(formData,existing){let p=existing||{id:id(),createdAt:new Date().toISOString()};Object.assign(p,formData);let a=arr(K.p);if(!saveJSONSafe(K.p,existing?a.map(x=>x.id===p.id?p:x):a.concat(p)))return{ok:false};return{ok:true,part:p}}
 async function savePart(e,existing=null){e.preventDefault();try{let formData=await collectPartFormData(existing);let result=persistPartRecord(formData,existing);if(!result.ok)return;location.href=`part.html?id=${result.part.id}`}catch(err){alert("تعذر حفظ صورة القطعة. جرّب صورة أخرى أصغر.")}}
-function renderParts(){let el=document.getElementById("partList");if(!el)return;let q=(partSearch?.value||"").toLowerCase();let a=arr(K.p).filter(p=>(p.name+" "+p.code+" "+p.location).toLowerCase().includes(q));el.innerHTML=a.length?a.map(p=>{let pct=(+p.use||0)>0?(((+p.use||0)-(+p.buy||0))/(+p.use||0)*100):0;return `<div class="item ps-context-target" data-ps-title="قطعة ${esc(p.name)}"><div class="item-head"><a href="part.html?id=${p.id}"><b>📦 ${esc(p.name)}</b></a>${psActions("قطعة "+p.name)}<span class="badge">${p.qty} قطعة</span></div><div>${esc(p.category)} • 📍 ${esc(p.location)||"—"}</div><div>شراء ${p.buy} ج • استخدام ${p.use} ج • 📈 ربح ${pct.toFixed(1)}%</div></div>`}).join(""):'<div class="item">لا توجد قطع.</div>'}
-async function partProfile(){let el=document.getElementById("partProfile");if(!el)return;let p=arr(K.p).find(x=>x.id===new URLSearchParams(location.search).get("id"));if(!p){el.innerHTML="<div class='item'>القطعة غير موجودة.</div>";return}let moves=arr(K.m).filter(x=>x.partId===p.id).slice(-10).reverse();let profitVal=(+p.use||0)-(+p.buy||0),profitPct=(+p.use||0)>0?(profitVal/(+p.use||0)*100):0;el.innerHTML=`<div class="profile ps-context-target" data-ps-title="قطعة ${esc(p.name)}"><div class="page-head"><h1 class="profile-title">📦 ${esc(p.name)}</h1><div class="compact-actions"><button class="secondary" onclick="editPart('${p.id}')">✏️ تعديل</button>${psActions("قطعة "+p.name)}</div></div><div class="profile-grid"><div class="kv"><b>الكود</b>${esc(p.code)||"—"}</div><div class="kv"><b>التصنيف</b>${esc(p.category)}</div><div class="kv"><b>المكان</b>📍 ${esc(p.location)||"—"}</div><div class="kv"><b>الكمية</b>${p.qty}</div><div class="kv"><b>الحد الأدنى</b>${p.min}</div><div class="kv"><b>سعر الشراء</b>${p.buy} ج</div><div class="kv"><b>سعر الاستخدام</b>${p.use} ج</div><div class="kv"><b>📈 مكسب القطعة</b>${profitVal.toFixed(2)} ج (${profitPct.toFixed(1)}%)</div></div><div id="partProfilePhoto"></div><h2>🔄 آخر حركات المخزن</h2>${moves.length?moves.map(x=>`<div class="item">${esc(x.type)} • ${x.qty} • ${new Date(x.at).toLocaleString("ar-EG")}</div>`).join(""):"<div class='item'>لا توجد حركات.</div>"}</div>`;if(p.photo){let src=window.ImageStore?await window.ImageStore.resolveSrc(p.photo):p.photo;let ph=document.getElementById("partProfilePhoto");if(ph&&src)ph.innerHTML=`<img class="photo" src="${src}">`}}
+function renderParts(){let el=document.getElementById("partList");if(!el)return;let q=(partSearch?.value||"").toLowerCase();let a=arr(K.p).filter(p=>!p.archived&&(p.name+" "+p.code+" "+p.location).toLowerCase().includes(q));el.innerHTML=a.length?a.map(p=>{let pct=(+p.use||0)>0?(((+p.use||0)-(+p.buy||0))/(+p.use||0)*100):0;return `<div class="item ps-context-target" data-ps-title="قطعة ${esc(p.name)}"><div class="item-head"><a href="part.html?id=${p.id}"><b>📦 ${esc(p.name)}</b></a>${psActions("قطعة "+p.name)}<button type="button" class="danger-btn small-btn" onclick="deletePartRecord(&apos;${p.id}&apos;)">🗑️ حذف</button><span class="badge">${p.qty} قطعة</span></div><div>${esc(p.category)} • 📍 ${esc(p.location)||"—"}</div><div>شراء ${p.buy} ج • استخدام ${p.use} ج • 📈 ربح ${pct.toFixed(1)}%</div></div>`}).join(""):'<div class="item">لا توجد قطع.</div>'}
+async function partProfile(){let el=document.getElementById("partProfile");if(!el)return;let p=arr(K.p).find(x=>x.id===new URLSearchParams(location.search).get("id"));if(!p){el.innerHTML="<div class='item'>القطعة غير موجودة.</div>";return}let moves=arr(K.m).filter(x=>x.partId===p.id).slice(-10).reverse();let profitVal=(+p.use||0)-(+p.buy||0),profitPct=(+p.use||0)>0?(profitVal/(+p.use||0)*100):0;el.innerHTML=`<div class="profile ps-context-target" data-ps-title="قطعة ${esc(p.name)}"><div class="page-head"><h1 class="profile-title">📦 ${esc(p.name)}</h1><div class="compact-actions"><button class="secondary" onclick="editPart('${p.id}')">✏️ تعديل</button>${p.archived?`<button class="primary" onclick="restorePartRecord('${p.id}')">↩️ إلغاء الأرشفة</button>`:`<button class="danger-btn" onclick="deletePartRecord('${p.id}')">🗑️ حذف</button>`}${psActions("قطعة "+p.name)}</div></div><div class="profile-grid"><div class="kv"><b>الكود</b>${esc(p.code)||"—"}</div><div class="kv"><b>التصنيف</b>${esc(p.category)}</div><div class="kv"><b>المكان</b>📍 ${esc(p.location)||"—"}</div><div class="kv"><b>الكمية</b>${p.qty}</div><div class="kv"><b>الحد الأدنى</b>${p.min}</div><div class="kv"><b>سعر الشراء</b>${p.buy} ج</div><div class="kv"><b>سعر الاستخدام</b>${p.use} ج</div><div class="kv"><b>📈 مكسب القطعة</b>${profitVal.toFixed(2)} ج (${profitPct.toFixed(1)}%)</div></div><div id="partProfilePhoto"></div><h2>🔄 آخر حركات المخزن</h2>${moves.length?moves.map(x=>`<div class="item">${esc(x.type)} • ${x.qty} • ${new Date(x.at).toLocaleString("ar-EG")}</div>`).join(""):"<div class='item'>لا توجد حركات.</div>"}</div>`;if(p.photo){let src=window.ImageStore?await window.ImageStore.resolveSrc(p.photo):p.photo;let ph=document.getElementById("partProfilePhoto");if(ph&&src)ph.innerHTML=`<img class="photo" src="${src}">`}}
 function listEditorHtml(title,key,icon){
   let a=settings()[key]||[];
   return `<section class="panel setting-list-panel"><div class="page-head"><h2>${icon} ${title}</h2><button class="secondary mini-action" onclick="addSettingItem('${key}')">➕ إضافة</button></div><div class="drag-hint">☷ اسحب أي عنصر وأفلته في المكان المطلوب</div><div id="list-${key}" class="sortable-list">${a.map((x,i)=>`<div class="setting-row drag-item" draggable="true" data-drag-kind="list" data-drag-key="${esc(key)}" data-drag-index="${i}"><span class="drag-handle" title="سحب للترتيب">☷</span><span class="setting-name"><b>${i+1}.</b> ${esc(x)}</span><span class="compact-actions"><input class="order-number" type="number" min="1" max="${a.length}" value="${i+1}" title="رقم الترتيب" onchange="setListPosition('${key}',${i},this.value)"><button class="secondary mini-action" onclick="renameSettingItem('${key}',${i})">✏️</button><button class="secondary mini-action" onclick="deleteSettingItem('${key}',${i})">🗑️</button></span></div>`).join("")}</div></section>`
@@ -314,39 +335,79 @@ function resolveRequestAddress(r){let c=arr(K.c).find(x=>x.id===r.customerId);if
 
 // خط سير اليوم: تجميع أوامر الشغل اللي لها موعد زيارة (اليوم/المتأخرة) حسب المركز والقرية.
 function toggleVisited(i){let a=arr(K.r),r=a.find(x=>x.id===i);if(!r)return;let today=dayKeyLocal(new Date());if(r.visitedAt&&dayKeyLocal(r.visitedAt)===today)r.visitedAt=null;else r.visitedAt=new Date().toISOString();put(K.r,a);renderRoute()}
+function setRouteContactStatus(i,status){
+  const a=arr(K.r),r=a.find(x=>x.id===i);if(!r)return;
+  r.contactStatus=status;
+  r.contactStatusAt=new Date().toISOString();
+  put(K.r,a);
+  renderRoute();
+}
+function clearRouteContactStatus(i){
+  const a=arr(K.r),r=a.find(x=>x.id===i);if(!r)return;
+  delete r.contactStatus;delete r.contactStatusAt;
+  put(K.r,a);
+  renderRoute();
+}
+function retryRouteContact(i){clearRouteContactStatus(i);}
+function routeOrderForList(list){
+  const s=settings(), ids=list.map(x=>x.id), saved=Array.isArray(s.routeOrder)?s.routeOrder:[];
+  const valid=saved.filter(id=>ids.includes(id));
+  const missing=ids.filter(id=>!valid.includes(id));
+  return valid.concat(missing);
+}
+function saveRouteOrder(ids){
+  const s=settings(), old=Array.isArray(s.routeOrder)?s.routeOrder:[];
+  const keep=old.filter(id=>!ids.includes(id));
+  s.routeOrder=keep.concat(ids);
+  put(K.s,s);
+}
+function moveRouteItem(id,delta){
+  const el=document.getElementById("routeList");if(!el)return;
+  const ids=[...el.querySelectorAll("[data-route-id]")].map(x=>x.dataset.routeId);
+  const i=ids.indexOf(id),j=i+delta;if(i<0||j<0||j>=ids.length)return;
+  [ids[i],ids[j]]=[ids[j],ids[i]];saveRouteOrder(ids);renderRoute();
+}
 function renderRoute(){
   let el=document.getElementById("routeList");if(!el)return;
-  let today=dayKeyLocal(new Date());
-  let cf=document.getElementById("routeCenterFilter")?.value||"";
-  let mode=document.getElementById("routeMode")?.value||"today";
-  let summaryEl=document.getElementById("routeSummary");
+  let today=dayKeyLocal(new Date()), cf=document.getElementById("routeCenterFilter")?.value||"", mode=document.getElementById("routeMode")?.value||"today", summaryEl=document.getElementById("routeSummary");
+  const allRequests=arr(K.r), customers=arr(K.c);
   if(summaryEl){
-    let scheduledToday=arr(K.r).filter(x=>x.visit&&dayKeyLocal(x.visit)===today);
-    let closedToday=scheduledToday.filter(x=>x.closed);
-    let visitedNotClosed=scheduledToday.filter(x=>!x.closed&&x.status!=="ملغي"&&x.visitedAt&&dayKeyLocal(x.visitedAt)===today);
-    let notVisited=scheduledToday.filter(x=>!x.closed&&x.status!=="ملغي"&&!(x.visitedAt&&dayKeyLocal(x.visitedAt)===today));
-    let collectedToday=arr(K.r).filter(x=>x.paidAt&&dayKeyLocal(x.paidAt)===today).reduce((a,x)=>a+Math.max(0,(+x.total||0)-(+x.deposit||0)),0);
-    summaryEl.innerHTML=`<div class="route-summary"><div class="stat"><b>${scheduledToday.length}</b><span>📅 مجدول النهاردة</span></div><div class="stat"><b>${closedToday.length}</b><span>✅ اتقفل واتحصّل</span></div><div class="stat"><b>${visitedNotClosed.length}</b><span>🚶 اتزار ولسه شغال</span></div><div class="stat"><b>${notVisited.length}</b><span>⏳ لسه محدش راح</span></div><div class="stat"><b>${collectedToday.toFixed(2)} ج</b><span>💰 المحصّل النهاردة</span></div></div>`;
+    let scheduledToday=allRequests.filter(x=>x.visit&&dayKeyLocal(x.visit)===today),closedToday=scheduledToday.filter(x=>x.closed),contactedToday=scheduledToday.filter(x=>x.contactStatus),visitedNotClosed=scheduledToday.filter(x=>!x.closed&&!x.contactStatus&&x.status!=="ملغي"&&x.visitedAt&&dayKeyLocal(x.visitedAt)===today),notVisited=scheduledToday.filter(x=>!x.closed&&!x.contactStatus&&x.status!=="ملغي"&&!(x.visitedAt&&dayKeyLocal(x.visitedAt)===today)),collectedToday=allRequests.filter(x=>x.paidAt&&dayKeyLocal(x.paidAt)===today).reduce((a,x)=>a+Math.max(0,(+x.total||0)-(+x.deposit||0)),0);
+    summaryEl.innerHTML=`<div class="route-summary"><div class="stat"><b>${scheduledToday.length}</b><span>📅 المجدول اليوم</span></div><div class="stat"><b>${closedToday.length}</b><span>✅ أُغلق وتم التحصيل</span></div><div class="stat"><b>${visitedNotClosed.length}</b><span>🚶 تمت الزيارة والعمل جارٍ</span></div><div class="stat"><b>${notVisited.length}</b><span>⏳ لم تتم الزيارة بعد</span></div><div class="stat"><b>${collectedToday.toFixed(2)} ج</b><span>💰 المُحصَّل اليوم</span></div></div>`;
   }
-  let list=arr(K.r).filter(x=>x.visit).filter(x=>{
-    let k=dayKeyLocal(x.visit);
-    let pending=x.status!=="مكتمل"&&x.status!=="ملغي"&&!x.closed;
+  let list=allRequests.filter(x=>x.visit).filter(x=>{
+    let k=dayKeyLocal(x.visit),pending=x.status!=="ملغي"&&!x.closed;
     if(mode==="today")return k===today;
     if(mode==="overdue")return k<today&&pending;
     return k===today||(k<today&&pending);
-  }).map(x=>({...x,_c:arr(K.c).find(z=>z.id===x.customerId)||{},_addr:resolveRequestAddress(x)}));
+  }).map(x=>({...x,_c:customers.find(z=>z.id===x.customerId)||{},_addr:resolveRequestAddress(x)}));
   if(cf)list=list.filter(x=>x._addr.center===cf);
-  list.sort((a,b)=>(a._addr.center||"").localeCompare(b._addr.center||"","ar")||(a._addr.village||"").localeCompare(b._addr.village||"","ar")||new Date(a.visit)-new Date(b.visit));
+  const orderIds=routeOrderForList(list), byId=new Map(list.map(x=>[x.id,x]));
+  list=orderIds.map(id=>byId.get(id)).filter(Boolean);
   if(!list.length){el.innerHTML='<div class="item">لا يوجد مواعيد ضمن الاختيار الحالي.</div>';return}
   let groups={};
   list.forEach(x=>{let k=x._addr.center||"بدون مركز";(groups[k]=groups[k]||[]).push(x)});
-  el.innerHTML=Object.keys(groups).map(center=>`<h3 class="route-group-title">🗺️ ${esc(center)} <span class="badge">${groups[center].length}</span></h3>`+groups[center].map(x=>{
-    let visitedToday=!!(x.visitedAt&&dayKeyLocal(x.visitedAt)===today);
-    let stateBadge=x.closed?'<span class="badge route-badge-done">✅ اتقفل</span>':x.status==="ملغي"?'<span class="badge">🚫 ملغي</span>':visitedToday?'<span class="badge route-badge-visited">🚶 اتزار</span>':'<span class="badge route-badge-pending">⏳ لسه</span>';
-    let lateBadge=dayKeyLocal(x.visit)<today&&!x.closed&&x.status!=="ملغي"?'<span class="badge">⚠️ متأخر</span>':"";
-    let toggleBtn=(!x.closed&&x.status!=="ملغي")?`<button type="button" class="secondary mini-action" onclick="toggleVisited('${x.id}')">${visitedToday?"↩️ إلغاء تسجيل الزيارة":"✅ سجّل إني زرته"}</button>`:"";
-    return `<div class="item record-card"><div class="item-head"><a href="request.html?id=${x.id}"><b>🛠️ ${esc(x.no)}</b></a>${stateBadge}${lateBadge}</div><div>👤 <a href="customer.html?id=${x.customerId}">${esc(x._c.name||"")}</a></div><div>${contactLinksHtml(x._c.phone)}</div><div>📍 ${esc(addressText(x._addr))}</div><div>🔧 ${esc(deviceName(x.deviceId))} — ${esc(x.fault||"")}</div><div>⏰ ${x.visit?new Date(x.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):""}</div>${x.closed?`<div>💰 المحصّل: ${Math.max(0,(+x.total||0)-(+x.deposit||0)).toFixed(2)} ج</div>`:""}${toggleBtn?`<div class="actions">${toggleBtn}</div>`:""}</div>`;
-  }).join("")).join("");
+  let html="";
+  Object.keys(groups).forEach(center=>{
+    html+=`<h3 class="route-group-title">🗺️ ${esc(center)} <span class="badge">${groups[center].length}</span></h3>`;
+    html+=groups[center].map(x=>{
+      let visitedToday=!!(x.visitedAt&&dayKeyLocal(x.visitedAt)===today),isDone=x.status==="مكتمل";
+      let contactBadge=x.contactStatus==='unavailable'?'<span class="badge route-badge-unavailable">📵 غير متاح</span>':x.contactStatus==='no-answer'?'<span class="badge route-badge-noanswer">📞 لم يرد</span>':'';
+      let stateBadge=x.closed?'<span class="badge route-badge-done">✅ مُغلق</span>':x.status==="ملغي"?'<span class="badge">🚫 ملغي</span>':contactBadge|| (visitedToday?'<span class="badge route-badge-visited">🚶 تمت الزيارة</span>':'<span class="badge route-badge-pending">⏳ قيد الانتظار</span>'),lateBadge=dayKeyLocal(x.visit)<today&&!x.closed&&x.status!=="ملغي"&&!x.contactStatus?'<span class="badge">⚠️ متأخر</span>':"";
+      const contactCollapsed=!!x.contactStatus && !x.closed && !isDone;
+      if(isDone || contactCollapsed){
+        const statusText=isDone?'✅ مكتمل':(x.contactStatus==='unavailable'?'📵 غير متاح':'📞 لم يرد');
+        const statusClass=isDone?'route-badge-done':(x.contactStatus==='unavailable'?'route-badge-unavailable':'route-badge-noanswer');
+        const when=x.contactStatusAt?new Date(x.contactStatusAt).toLocaleString('ar-EG',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+        const retryBtn=contactCollapsed?`<button type="button" class="route-retry-btn mini-action" onclick="event.stopPropagation();retryRouteContact('${x.id}')" title="إرجاع الطلب إلى الحالة النشطة لإعادة المحاولة">🔄 إعادة المحاولة</button>`:'';
+        return `<div class="route-completed-row" data-route-id="${x.id}" onclick="location.href='request.html?id=${x.id}'" title="اضغط لفتح أمر الشغل"><b>👤 ${esc(x._c.name||"بدون اسم")}</b><span class="badge ${statusClass}">${statusText}</span><span class="route-row-arrows">${retryBtn}<button type="button" class="route-up-btn mini-action" onclick="event.stopPropagation();moveRouteItem('${x.id}',-1)" title="تحريك لأعلى">⬆️</button><button type="button" class="route-down-btn mini-action" onclick="event.stopPropagation();moveRouteItem('${x.id}',1)" title="تحريك لأسفل">⬇️</button></span></div>`;
+      }
+      let toggleBtn=(!x.closed&&x.status!=="ملغي")?`<button type="button" class="secondary mini-action" onclick="event.preventDefault();event.stopPropagation();toggleVisited('${x.id}')">${visitedToday?"↩️ إلغاء تسجيل الزيارة":"✅ تسجيل الزيارة"}</button>`:"";
+      let contactBtns=(!x.closed&&x.status!=="ملغي")?`<button type="button" class="route-contact-unavailable mini-action" onclick="event.preventDefault();event.stopPropagation();setRouteContactStatus('${x.id}','unavailable')">📵 غير متاح</button><button type="button" class="route-contact-noanswer mini-action" onclick="event.preventDefault();event.stopPropagation();setRouteContactStatus('${x.id}','no-answer')">📞 لم يرد</button>`:"";
+      return `<div class="item route-order-card" data-route-id="${x.id}"><div class="route-order-head"><a href="request.html?id=${x.id}"><b>🛠️ ${esc(x.no)}</b></a><span class="route-order-name">👤 ${esc(x._c.name||"")}</span><span class="route-head-status">${stateBadge}${lateBadge}</span></div><div class="route-order-data"><div class="route-data-cell">📍 <span>${esc(addressText(x._addr))}</span></div><div class="route-data-cell">📞 <span>${contactLinksHtml(x._c.phone)}</span></div><div class="route-data-cell">🔧 <span>${esc(deviceName(x.deviceId))}</span></div><div class="route-data-cell">📝 <span>${esc(x.fault||"")}</span></div><div class="route-data-cell">⏰ <span>${x.visit?new Date(x.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):""}</span></div>${x.closed?`<div class="route-data-cell">💰 <span>${Math.max(0,(+x.total||0)-(+x.deposit||0)).toFixed(2)} ج</span></div>`:""}</div><div class="route-order-actions">${toggleBtn?`<div class="route-visit-row">${toggleBtn}</div>`:""}${contactBtns?`<div class="route-contact-row">${contactBtns}</div>`:""}<div class="route-arrows-row"><button type="button" class="route-up-btn mini-action" onclick="event.preventDefault();moveRouteItem('${x.id}',-1)" title="تحريك لأعلى">⬆️</button><button type="button" class="route-down-btn mini-action" onclick="event.preventDefault();moveRouteItem('${x.id}',1)" title="تحريك لأسفل">⬇️</button></div></div></div>`;
+    }).join("");
+  });
+  el.innerHTML=html;
 }
 function initRoutePage(){
   let cfEl=document.getElementById("routeCenterFilter");if(!cfEl)return;

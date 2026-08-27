@@ -113,6 +113,7 @@
     s.orderTags = s.orderTags || [];
     s.villageGroups = s.villageGroups || {};
     s.expenseCategories = s.expenseCategories || ["وقود ومواصلات", "صيانة عدة وأدوات", "إيجار وفواتير", "أخرى"];
+    s.routeOrder = Array.isArray(s.routeOrder) ? s.routeOrder : [];
     put(K.s, s);
     return s;
   }
