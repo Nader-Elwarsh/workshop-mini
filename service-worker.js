@@ -1,4 +1,4 @@
-const CACHE_NAME = "workshop-v11-27-bugfixes";
+const CACHE_NAME = "workshop-v11-36";
 importScripts("./notif-shared.js");
 const CORE_FILES = [
   "./",
@@ -19,11 +19,24 @@ const CORE_FILES = [
   "./reports.html",
   "./style.css",
   "./shared-data.js",
+  "./global-search.js",
   "./image-store.js",
   "./migrations.js",
   "./treasury.js",
   "./tasks.js",
-  "./app.js",
+  "./app-shared.js",
+  "./app-dashboard-reports.js",
+  "./app-customers.js",
+  "./app-devices.js",
+  "./app-requests.js",
+  "./app-settings-lists.js",
+  "./app-parts.js",
+  "./app-settings.js",
+  "./app-delete-tools.js",
+  "./app-route-followup.js",
+  "./app-data-management.js",
+  "./app-quick-add.js",
+  "./app-notifications-bootstrap.js",
   "./workshop-mini-simple-ui.js",
   "./workshop-mini-enhancements.js",
   "./reports.js",
@@ -59,7 +72,7 @@ self.addEventListener("fetch", event => {
 
   // HTML pages: cache by pathname, not by query string.
   // This makes customer.html?id=..., device.html?id=... and request.html?id=...
-  // open correctly while offline; app.js reads the ID from the URL.
+  // open correctly while offline; the app-*.js files read the ID from the URL.
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)

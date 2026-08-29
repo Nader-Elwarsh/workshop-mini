@@ -61,7 +61,7 @@
      يتضاف (نعتبرها إصدار 1 ضمنيًا).
      --------------------------------------------------------------------- */
   const SCHEMA_KEY = "wf_schema_version";
-  const CURRENT_SCHEMA_VERSION = 2;
+  const CURRENT_SCHEMA_VERSION = 3;
   function getSchemaVersion() {
     let v = parseInt(localStorage.getItem(SCHEMA_KEY), 10);
     return Number.isFinite(v) && v > 0 ? v : 1;
@@ -103,10 +103,13 @@
       if (Array.isArray(base[k])) s[k] = Array.isArray(s[k]) ? s[k] : base[k];
       else if (base[k] && typeof base[k] === "object") s[k] = s[k] && typeof s[k] === "object" ? s[k] : base[k];
     }
-    s.orderStatuses = s.orderStatuses || ["جديد", "تم التواصل", "مجدول", "جاري الفحص", "انتظار موافقة العميل", "تحت الإصلاح", "مكتمل", "ملغي"];
-    s.priorities = s.priorities || ["عادية", "عاجلة", "أولوية عالية"];
+    // حالات أمر الشغل وحالات الورشة أصبحت دورة معتمدة وثابتة (راجع
+    // WORK_ORDER_LIFECYCLE_APPROVED.md) — مش قوايم قابلة للتعديل من
+    // الإعدادات زي قبل، فبتتفرض هنا دايمًا بغض النظر عمّا هو مخزّن.
+    s.orderStatuses = ["جديد", "جاري التنفيذ", "مكتمل", "ملغي"];
     s.executionPlaces = s.executionPlaces || ["عند العميل", "الورشة"];
-    s.workshopStatuses = s.workshopStatuses || ["غير مطلوب", "مطلوب السحب", "تم السحب", "استلام الورشة", "تحت الإصلاح", "جاهز للتسليم", "تم التسليم"];
+    s.workshopStatuses = ["غير مطلوب", "تم السحب", "تم التسليم"];
+    delete s.priorities;
     s.paymentStatuses = s.paymentStatuses || ["غير مكتمل", "تم الدفع بالكامل"];
     s.units = s.units || ["قطعة", "متر", "كيلو", "لتر", "مجموعة"];
     s.addressTypes = s.addressTypes || ["العنوان الأساسي", "العنوان الإضافي"];
@@ -114,6 +117,7 @@
     s.villageGroups = s.villageGroups || {};
     s.expenseCategories = s.expenseCategories || ["وقود ومواصلات", "صيانة عدة وأدوات", "إيجار وفواتير", "أخرى"];
     s.routeOrder = Array.isArray(s.routeOrder) ? s.routeOrder : [];
+    s.returnWindowDays = Number.isFinite(+s.returnWindowDays) && +s.returnWindowDays > 0 ? +s.returnWindowDays : 7;
     put(K.s, s);
     return s;
   }

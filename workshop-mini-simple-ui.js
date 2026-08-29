@@ -83,8 +83,11 @@
   }
 
   function orderIsWorkshop(r) {
-    return r.executionPlace === "الورشة" ||
-      (r.workshopStatus && r.workshopStatus !== "غير مطلوب" && r.workshopStatus !== "تم التسليم");
+    // ملحوظة: كل مكان بيغيّر workshopStatus (requestWorkshopPull،
+    // setWorkshopStatus) بيحدّث executionPlace لـ"الورشة" في نفس اللحظة،
+    // فمفيش حالة عملية فيها workshopStatus من غير executionPlace==="الورشة"
+    // — الشرط الإضافي القديم كان دايمًا بيرجع نفس نتيجة الشرط الأول.
+    return r.executionPlace === "الورشة";
   }
 
   function orderIsParts(r) {
@@ -100,6 +103,17 @@
 
   function simpleButton(label, icon, action, cls="") {
     return `<button type="button" class="simple-tile ${cls}" onclick="${action}"><span>${icon}</span><b>${label}</b></button>`;
+  }
+
+  /* بطاقة موحّدة: الرقم الإحصائي والزرار القابل للضغط في عنصر واحد
+     (بدل تكرار نفس البيانات في صندوق أرقام منفصل + زرار فلترة منفصل) */
+  function countTile(label, icon, count, action, cls="", note="") {
+    return `<button type="button" class="simple-tile count-tile ${cls}" onclick="${action}">
+      <span class="tile-icon">${icon}</span>
+      <b class="tile-count">${count}</b>
+      <small class="tile-label">${label}</small>
+      ${note ? `<small class="tile-note">${note}</small>` : ""}
+    </button>`;
   }
 
   function activeOrdersForCustomer(cid) {
@@ -349,6 +363,8 @@
     renderParts();
   };
 
+  /* النسخة دي بتستبدل نسخة app-parts.js الأساسية على نفس الصفحات. أي تعديل
+     في بيانات القطعة المعروضة لازم يترجم للنسختين. */
   window.renderParts = function () {
     const el = $("partList");
     if (!el) return;
@@ -411,6 +427,8 @@
   window.showAllRequests = function () {
     state.requests = true;
     state.requestBucket = "";
+    state.requestStatus = "";
+    state.requestLocation = "";
     $("requestSearch")?.classList.remove("hidden");
     $("statusFilter")?.classList.remove("hidden");
     $("workshopFilter")?.classList.remove("hidden");
@@ -420,6 +438,30 @@
   window.showRequestBucket = function (bucket) {
     state.requests = true;
     state.requestBucket = bucket;
+    state.requestStatus = "";
+    state.requestLocation = "";
+    $("requestSearch")?.classList.add("hidden");
+    $("statusFilter")?.classList.add("hidden");
+    $("workshopFilter")?.classList.add("hidden");
+    renderRequests();
+  };
+
+  window.showRequestByStatus = function (status) {
+    state.requests = true;
+    state.requestBucket = "";
+    state.requestStatus = status;
+    state.requestLocation = "";
+    $("requestSearch")?.classList.add("hidden");
+    $("statusFilter")?.classList.add("hidden");
+    $("workshopFilter")?.classList.add("hidden");
+    renderRequests();
+  };
+
+  window.showRequestByLocation = function (loc) {
+    state.requests = true;
+    state.requestBucket = "";
+    state.requestStatus = "";
+    state.requestLocation = loc;
     $("requestSearch")?.classList.add("hidden");
     $("statusFilter")?.classList.add("hidden");
     $("workshopFilter")?.classList.add("hidden");
@@ -429,6 +471,8 @@
   window.hideAllRequests = function () {
     state.requests = false;
     state.requestBucket = "";
+    state.requestStatus = "";
+    state.requestLocation = "";
     $("requestSearch")?.classList.add("hidden");
     $("statusFilter")?.classList.add("hidden");
     $("workshopFilter")?.classList.add("hidden");
@@ -443,7 +487,10 @@
     if (b === "completed") return orderIsCompleted(r);
     if (b === "parts") return orderIsParts(r);
     if (b === "overdue") return orderIsOverdue(r);
-    if (b === "open") return !orderIsCompleted(r) && r.status !== "ملغي";
+    if (b === "open" || b === "unfinished" || b === "needed") return r.status !== "مكتمل" && r.status !== "ملغي" && !r.closed;
+    if (b === "new") return r.status === "جديد";
+    if (b === "active") return r.status === "جاري التنفيذ";
+    if (b === "cancelled") return r.status === "ملغي";
     if (b === "unpaid") return !r.closed && Math.max(0, (+r.total || 0) - (+r.deposit || 0)) > 0;
     return true;
   }
@@ -542,32 +589,94 @@
     </div>`;
   }
 
+  // خط سير اليوم داخل صفحة الأوامر — نفس بطاقات/أزرار صفحة "خط السير"
+  // (route.html) بالظبط: تجميع حسب المركز، تسجيل الزيارة، حالة التواصل،
+  // ترتيب بالأسهم، وطي الأوامر المكتملة/المتصل بيها في سطر واحد قابل
+  // لإعادة المحاولة. الفرق الوحيد إنها هنا مقصورة على مواعيد اليوم فقط
+  // ومطبوعة كجزء من ملخص صفحة الأوامر بدل صفحة مستقلة.
+  function renderTodayRouteWidget(all) {
+    const today = dayKeyLocal(new Date());
+    const customers = customerRows();
+    const scheduledToday = all.filter(x => x.visit && dayKeyLocal(x.visit) === today);
+    const closedToday = scheduledToday.filter(x => x.closed);
+    const visitedNotClosed = scheduledToday.filter(x => !x.closed && !x.contactStatus && x.status !== "ملغي" && x.visitedAt && dayKeyLocal(x.visitedAt) === today);
+    const notVisited = scheduledToday.filter(x => !x.closed && !x.contactStatus && x.status !== "ملغي" && !(x.visitedAt && dayKeyLocal(x.visitedAt) === today));
+    const collectedToday = all.filter(x => x.paidAt && dayKeyLocal(x.paidAt) === today).reduce((a,x)=>a+Math.max(0,(+x.total||0)-(+x.deposit||0)),0);
+    const summaryHtml = `<div class="route-summary"><div class="stat"><b>${scheduledToday.length}</b><span>📅 المجدول اليوم</span></div><div class="stat"><b>${closedToday.length}</b><span>✅ أُغلق وتم التحصيل</span></div><div class="stat"><b>${visitedNotClosed.length}</b><span>🚶 تمت الزيارة والعمل جارٍ</span></div><div class="stat"><b>${notVisited.length}</b><span>⏳ لم تتم الزيارة بعد</span></div><div class="stat"><b>${collectedToday.toFixed(2)} ج</b><span>💰 المُحصَّل اليوم</span></div></div>`;
+
+    let list = scheduledToday.map(x => ({ ...x, _c: customers.find(z => z.id === x.customerId) || {}, _addr: resolveRequestAddress(x) }));
+    const orderIds = routeOrderForList(list), byId = new Map(list.map(x => [x.id, x]));
+    list = orderIds.map(idv => byId.get(idv)).filter(Boolean);
+
+    if (!list.length) {
+      return `<div class="today-route-widget"><div class="simple-summary-title"><b>📅 خط سير اليوم</b></div><div class="item">لا يوجد مواعيد اليوم.</div></div>`;
+    }
+
+    const groups = {};
+    list.forEach(x => { const k = x._addr.center || "بدون مركز"; (groups[k] = groups[k] || []).push(x); });
+
+    let itemsHtml = "";
+    Object.keys(groups).forEach(center => {
+      itemsHtml += `<h3 class="route-group-title">🗺️ ${esc2(center)} <span class="badge">${groups[center].length}</span></h3>`;
+      itemsHtml += groups[center].map(x => {
+        const visitedToday = !!(x.visitedAt && dayKeyLocal(x.visitedAt) === today), isDone = x.status === "مكتمل";
+        const contactBadge = x.contactStatus === 'unavailable' ? '<span class="badge route-badge-unavailable">📵 غير متاح</span>' : x.contactStatus === 'no-answer' ? '<span class="badge route-badge-noanswer">📞 لم يرد</span>' : '';
+        const stateBadge = x.closed ? '<span class="badge route-badge-done">✅ مُغلق</span>' : x.status === "ملغي" ? '<span class="badge">🚫 ملغي</span>' : contactBadge || (visitedToday ? '<span class="badge route-badge-visited">🚶 تمت الزيارة</span>' : '<span class="badge route-badge-pending">⏳ قيد الانتظار</span>');
+        const contactCollapsed = !!x.contactStatus && !x.closed && !isDone;
+        if (isDone || contactCollapsed) {
+          const statusText = isDone ? '✅ مكتمل' : (x.contactStatus === 'unavailable' ? '📵 غير متاح' : '📞 لم يرد');
+          const statusClass = isDone ? 'route-badge-done' : (x.contactStatus === 'unavailable' ? 'route-badge-unavailable' : 'route-badge-noanswer');
+          const retryBtn = contactCollapsed ? `<button type="button" class="route-retry-btn mini-action" onclick="event.stopPropagation();retryRouteContact('${x.id}')" title="إرجاع الطلب إلى الحالة النشطة لإعادة المحاولة">🔄 إعادة المحاولة</button>` : '';
+          const returnBtn = (isDone && canReturnRequest(x)) ? `<button type="button" class="return-btn mini-action" onclick="event.stopPropagation();markRequestReturned('${x.id}')" title="إرجاع الأمر كمرتجع للتعديل">🔄 مرتجع${x.closed ? ` (${Math.max(0,returnWindowDaysLeft(x))}ي)` : ''}</button>` : '';
+          return `<div class="route-completed-row" data-route-id="${x.id}" onclick="location.href='request.html?id=${x.id}'" title="اضغط لفتح أمر الشغل"><b>👤 ${esc2(x._c.name||"بدون اسم")}</b><span class="badge ${statusClass}">${statusText}</span><span class="route-row-arrows">${retryBtn}${returnBtn}<button type="button" class="route-up-btn mini-action" onclick="event.stopPropagation();moveRouteItem('${x.id}',-1)" title="تحريك لأعلى">⬆️</button><button type="button" class="route-down-btn mini-action" onclick="event.stopPropagation();moveRouteItem('${x.id}',1)" title="تحريك لأسفل">⬇️</button></span></div>`;
+        }
+        const toggleBtn = (!x.closed && x.status !== "ملغي") ? `<button type="button" class="secondary mini-action" onclick="event.preventDefault();event.stopPropagation();toggleVisited('${x.id}')">${visitedToday ? "↩️ إلغاء تسجيل الزيارة" : "✅ تسجيل الزيارة"}</button>` : "";
+        const contactBtns = (!x.closed && x.status !== "ملغي") ? `<button type="button" class="route-contact-unavailable mini-action" onclick="event.preventDefault();event.stopPropagation();setRouteContactStatus('${x.id}','unavailable')">📵 غير متاح</button><button type="button" class="route-contact-noanswer mini-action" onclick="event.preventDefault();event.stopPropagation();setRouteContactStatus('${x.id}','no-answer')">📞 لم يرد</button>` : "";
+        return `<div class="item route-order-card" data-route-id="${x.id}"><div class="route-order-head"><a href="request.html?id=${x.id}"><b>🛠️ ${esc2(x.no)}</b></a><span class="route-order-name">👤 ${esc2(x._c.name||"")}</span><span class="route-head-status">${stateBadge}</span></div><div class="route-order-data"><div class="route-data-cell">📍 <span>${esc2(addressText(x._addr))}</span></div><div class="route-data-cell">📞 <span>${contactLinksHtml(x._c.phone)}</span></div><div class="route-data-cell">🔧 <span>${esc2(deviceName(x.deviceId))}</span></div><div class="route-data-cell">📝 <span>${esc2(x.fault||"")}</span></div><div class="route-data-cell">⏰ <span>${x.visit?new Date(x.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):""}</span></div>${x.closed?`<div class="route-data-cell">💰 <span>${Math.max(0,(+x.total||0)-(+x.deposit||0)).toFixed(2)} ج</span></div>`:""}</div><div class="route-order-actions">${toggleBtn?`<div class="route-visit-row">${toggleBtn}</div>`:""}${contactBtns?`<div class="route-contact-row">${contactBtns}</div>`:""}<div class="route-arrows-row"><button type="button" class="route-up-btn mini-action" onclick="event.preventDefault();moveRouteItem('${x.id}',-1)" title="تحريك لأعلى">⬆️</button><button type="button" class="route-down-btn mini-action" onclick="event.preventDefault();moveRouteItem('${x.id}',1)" title="تحريك لأسفل">⬇️</button></div></div></div>`;
+      }).join("");
+    });
+
+    return `<div class="today-route-widget"><div class="simple-summary-title"><b>📅 خط سير اليوم</b><span>${list.length} أمر</span></div>${summaryHtml}${itemsHtml}</div>`;
+  }
+
   function renderRequestSummary() {
     const el = $("requestList");
     if (!el) return;
     const all = requestRows();
+    const open = all.filter(r => r.status !== "مكتمل" && r.status !== "ملغي" && !r.closed);
     const counts = {
-      today: all.filter(orderIsToday).length,
-      workshop: all.filter(orderIsWorkshop).length,
+      all: all.length,
+      open: open.length,
+      newOrders: all.filter(r => r.status === "جديد").length,
+      active: all.filter(r => r.status === "جاري التنفيذ").length,
       completed: all.filter(orderIsCompleted).length,
+      cancelled: all.filter(r => r.status === "ملغي").length,
+      workshop: all.filter(orderIsWorkshop).length,
       parts: all.filter(orderIsParts).length,
       overdue: all.filter(orderIsOverdue).length
     };
+    const completedTimed = all.filter(r => orderIsCompleted(r) && requestTotalCompletionMs(r)!==null);
+    const avgAll = completedTimed.length ? completedTimed.reduce((a,r)=>a+requestTotalCompletionMs(r),0)/completedTimed.length : null;
+    const workshopTimed = all.filter(r => orderIsCompleted(r) && orderIsWorkshop(r) && requestWorkshopExecutionMs(r)!==null);
+    const avgWorkshop = workshopTimed.length ? workshopTimed.reduce((a,r)=>a+requestWorkshopExecutionMs(r),0)/workshopTimed.length : null;
 
     el.innerHTML = `
       <section class="simple-home request-simple-home">
         <div class="simple-summary-title"><b>🛠️ أوامر الشغل</b><span>${all.length} إجمالي</span></div>
         <div class="simple-order-grid">
-          ${simpleButton("اليوم","📅","showRequestBucket('today')")}
-          ${simpleButton("الورشة","🏭","showRequestBucket('workshop')")}
-          ${simpleButton("المكتملة","✅","showRequestBucket('completed')")}
-          ${simpleButton("انتظار قطع","📦","showRequestBucket('parts')")}
-          ${simpleButton("متأخر","⚠️","showRequestBucket('overdue')")}
-          ${simpleButton("كل الأوامر","🛠️","showAllRequests()","primary-tile")}
+          ${countTile("المطلوب الآن","🎯",counts.open,"showRequestBucket('needed')","primary-tile")}
+          ${countTile("الجديد","🆕",counts.newOrders,"showRequestByStatus('جديد')")}
+          ${countTile("جاري التنفيذ","🔧",counts.active,"showRequestByStatus('جاري التنفيذ')")}
+          ${countTile("متأخر","⚠️",counts.overdue,"showRequestBucket('overdue')")}
+          ${countTile("الورشة","🏭",counts.workshop,"showRequestByLocation('workshop')","",avgWorkshop!==null?`⏱️ متوسط ${formatDuration(avgWorkshop)}`:"")}
+          ${countTile("انتظار قطع","📦",counts.parts,"showRequestBucket('parts')")}
+          ${countTile("المكتملة","✅",counts.completed,"showRequestBucket('completed')","",avgAll!==null?`⏱️ متوسط ${formatDuration(avgAll)}`:"")}
+          ${countTile("الملغاة","❌",counts.cancelled,"showRequestByStatus('ملغي')")}
+          ${countTile("كل الأوامر","🛠️",all.length,"showAllRequests()","primary-tile")}
         </div>
         ${tagSummaryHtml(all)}
       </section>
-      ${renderRouteSummary(all)}`;
+      ${renderTodayRouteWidget(all)}`;
   }
 
   window.renderRequestFolders = function () {
@@ -579,7 +688,6 @@
   defineOverride("renderRequests", "workshop-mini-simple-ui.js", function () {
     const el = $("requestList");
     if (!el) return;
-
     const all = requestRows();
 
     if (!state.requests) {
@@ -588,50 +696,90 @@
       return;
     }
 
-    const q = ($("requestSearch")?.value || "").toLowerCase().trim();
-    const sf = $("statusFilter")?.value || "";
-    const wf = $("workshopFilter")?.value || "";
-    const bucket = state.requestBucket;
+    const q = ($("requestOpsSearch")?.value || $("requestSearch")?.value || "").toLowerCase().trim();
+    const sf = $("requestOpsStatus")?.value || state.requestStatus || "";
+    const wf = $("requestOpsWorkshop")?.value || state.requestLocation || "";
+    const focus = $("requestOpsFocus")?.value || state.requestBucket || "";
+    const sort = $("requestOpsSort")?.value || "oldest";
 
     let filtered = all.filter(r => {
-      const text = [r.no, customerName(r.customerId), r.fault, orderLocationLabel(r)].filter(Boolean).join(" ").toLowerCase();
+      const text = [r.no, customerName(r.customerId), r.fault, orderLocationLabel(r), r.tag].filter(Boolean).join(" ").toLowerCase();
       let ok = !q || text.includes(q);
-      if (bucket) ok = ok && bucketFilter(r,bucket);
+      if (focus) ok = ok && bucketFilter(r,focus);
       if (sf) ok = ok && r.status === sf;
       if (wf === "workshop") ok = ok && r.executionPlace === "الورشة";
-      if (wf === "pull") ok = ok && r.workshopStatus && r.workshopStatus !== "غير مطلوب" && r.workshopStatus !== "تم التسليم";
-      if (wf === "inside") ok = ok && ["تم السحب","استلام الورشة","تحت الإصلاح","جاهز للتسليم"].includes(r.workshopStatus);
+      if (wf === "home") ok = ok && r.executionPlace !== "الورشة";
       return ok;
     });
 
-    filtered.sort((a,b) => new Date(b.visit || b.createdAt || 0) - new Date(a.visit || a.createdAt || 0));
+    const byDate=(r)=>new Date(r.createdAt||r.visit||0).getTime()||0;
+    if(sort==="newest") filtered.sort((a,b)=>byDate(b)-byDate(a));
+    else if(sort==="visit") filtered.sort((a,b)=>(new Date(a.visit||"9999-12-31")-new Date(b.visit||"9999-12-31")));
+    else if(sort==="age") filtered.sort((a,b)=>(requestAgeMs(b)||0)-(requestAgeMs(a)||0));
+    else if(sort==="completion") filtered.sort((a,b)=>(requestTotalCompletionMs(b)||0)-(requestTotalCompletionMs(a)||0));
+    else filtered.sort((a,b)=>byDate(a)-byDate(b));
 
-    const title = bucket === "today" ? "أوامر اليوم" :
-      bucket === "workshop" ? "أوامر الورشة" :
-      bucket === "completed" ? "الأوامر المكتملة" :
-      bucket === "parts" ? "انتظار قطع الغيار" :
-      bucket === "overdue" ? "الأوامر المتأخرة" :
-      bucket === "open" ? "الأوامر المفتوحة" :
-      bucket === "unpaid" ? "متبقي غير محصّل" :
-      (bucket && bucket.indexOf("tag:") === 0) ? `🏷️ ${bucket.slice(4) || "بدون تصنيف"}` : "كل الأوامر";
+    const title = focus === "today" ? "أوامر اليوم" :
+      focus === "workshop" ? "أوامر الورشة" :
+      focus === "completed" ? "الأوامر المكتملة" :
+      focus === "parts" ? "انتظار قطع الغيار" :
+      focus === "overdue" ? "الأوامر المتأخرة" :
+      focus === "unfinished" ? "الأوامر غير المكتملة" :
+      focus === "needed" ? "المطلوب الآن" :
+      focus === "new" ? "الأوامر الجديدة" :
+      focus === "active" ? "جاري التنفيذ" :
+      focus === "cancelled" ? "الأوامر الملغاة" :
+      focus && focus.indexOf("tag:") === 0 ? `🏷️ ${focus.slice(4) || "بدون تصنيف"}` : "كل الأوامر";
+
+    const selectHtml=(id,options,val,placeholder="كل") =>
+      `<select id="${id}" onchange="renderRequests()">${placeholder?`<option value="">${placeholder}</option>`:""}${options.map(x=>`<option value="${esc2(x.v)}" ${String(val)===String(x.v)?"selected":""}>${esc2(x.t)}</option>`).join("")}</select>`;
 
     el.innerHTML = `
       <div class="simple-list-head">
         <div><b>${title}</b><small>${filtered.length} أمر</small></div>
         <button type="button" class="secondary small-btn" onclick="hideAllRequests()">رجوع للملخص</button>
       </div>
+      <div class="request-filter-panel">
+        <div class="request-filter-grid">
+          <input id="requestOpsSearch" value="${esc2(q)}" placeholder="🔍 ابحث في الأوامر" oninput="renderRequests()">
+          ${selectHtml("requestOpsFocus",[
+            {v:"",t:"كل الأوامر"},{v:"needed",t:"🎯 المطلوب الآن"},{v:"completed",t:"✅ مكتمل"},
+            {v:"overdue",t:"⚠️ متأخر"},{v:"parts",t:"📦 انتظار قطع"},
+            {v:"today",t:"📅 اليوم"},{v:"unpaid",t:"🧾 غير محصل"}
+          ],focus,"التركيز")}
+          ${selectHtml("requestOpsStatus",[
+            {v:"جديد",t:"جديد"},{v:"جاري التنفيذ",t:"جاري التنفيذ"},{v:"مكتمل",t:"مكتمل"},{v:"ملغي",t:"ملغي"}
+          ],sf,"الحالة")}
+          ${selectHtml("requestOpsWorkshop",[
+            {v:"workshop",t:"🏭 في الورشة"},{v:"home",t:"🏠 في المنزل"}
+          ],wf,"📍 مكان التنفيذ")}
+          ${selectHtml("requestOpsSort",[
+            {v:"oldest",t:"الأقدم أولًا"},{v:"newest",t:"الأحدث أولًا"},{v:"visit",t:"حسب موعد الزيارة"},
+            {v:"age",t:"الأكبر عمرًا"},{v:"completion",t:"أطول مدة إكمال"}
+          ],sort,"الترتيب")}
+        </div>
+      </div>
       ${filtered.length ? filtered.map(r => {
         const loc = locationForOrder(r);
         const status = r.closed ? "مغلق" : (r.status || "—");
+        const age = !orderIsCompleted(r) && r.status!=="ملغي" ? formatDuration(requestAgeMs(r)) : "";
+        const totalMs=requestTotalCompletionMs(r);
+        const workshopMs=requestWorkshopExecutionMs(r);
         return `<div class="simple-record">
           <div class="simple-record-icon">${r.closed ? "🔒" : "🛠️"}</div>
           <div class="simple-record-main">
             <a href="request.html?id=${r.id}"><b>${esc2(r.no || "أمر شغل")}</b></a>
             <span>${esc2(customerName(r.customerId))} • ${esc2(deviceName(r.deviceId))}</span>
             <small>📍 ${esc2(loc.center)}${loc.village ? " • " + esc2(loc.village) : ""} • ${r.visit ? new Date(r.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "بدون موعد"}${r.tag ? " • 🏷️ " + esc2(r.tag) : ""}</small>
+            <div class="request-timing">
+              ${age ? `<span class="request-age">⏳ عمر الأمر: ${esc2(age)}</span>` : ""}
+              ${totalMs!==null ? `<span>⏱️ الإكمال: ${esc2(formatDuration(totalMs))}</span>` : ""}
+              ${r.executionPlace==="الورشة" && workshopMs!==null ? `<span>🏭 تنفيذ الورشة: ${esc2(formatDuration(workshopMs))}</span>` : ""}
+            </div>
           </div>
           <div class="simple-record-side">
             <span class="simple-status ${r.closed ? "closed" : ""}">${esc2(status)}</span>
+            ${canReturnRequest(r) ? `<button type="button" class="secondary mini-action return-btn" onclick="markRequestReturned('${r.id}')">🔄 مرتجع${r.closed ? ` (${Math.max(0,returnWindowDaysLeft(r))}ي)` : ""}</button>` : ""}
             <b>${(+r.total||0).toFixed(2)} ج</b>
             ${(+r.deposit||0) > 0 ? `<small class="deposit-chip">💵 عربون ${(+r.deposit).toFixed(2)} ج</small>` : ""}
           </div>
@@ -639,35 +787,8 @@
       }).join("") : `<div class="item">لا توجد أوامر في هذا القسم.</div>`}`;
   });
 
-  /* ---------- الإغلاق: الحالة تصبح مكتملة ويُسجل الإغلاق ---------- */
-  window.markPaidAndClose = function (i) {
-    const a = requestRows();
-    const r = a.find(x => x.id === i);
-    if (!r || r.closed || r.paid) return;
-    if (r.status !== "مكتمل") {
-      alert("اجعل حالة أمر الشغل «مكتمل» أولًا.");
-      return;
-    }
-    if (!confirm("تأكيد استلام كامل قيمة الأمر وإغلاقه نهائيًا؟ بعد التأكيد لن يمكن التعديل.")) return;
-
-    const now = new Date().toISOString();
-    const collected = Math.max(0, (+r.total || 0) - (+r.deposit || 0));
-    r.status = "مكتمل";
-    r.paid = true;
-    r.remain = 0;
-    r.paidAt = now;
-    r.closed = true;
-    r.closedAt = now;
-    r.closedStatus = "مغلق";
-
-    save("wf_r", a);
-    if (typeof syncTreasuryForOrderClose === "function") syncTreasuryForOrderClose(r, collected);
-    location.reload();
-  };
-
-  window.closeOrder = function (i) {
-    window.markPaidAndClose(i);
-  };
+  /* markPaidAndClose / closeOrder: بقوا نسخة واحدة موحّدة في app-shared.js
+     (بيتحمّل قبل الملف ده في كل صفحة)، فمفيش داعي نستبدلهم هنا تاني. */
 
   /* ---------- الدخول المباشر من إحصائيات الصفحة الرئيسية (?bucket=...) ---------- */
   function applyDeepLinkBucket() {
@@ -675,6 +796,7 @@
     if (!bucket) return;
     if ($("requestList")) {
       if (bucket === "all") window.showAllRequests();
+      else if (bucket === "workshop") window.showRequestByLocation("workshop");
       else window.showRequestBucket(bucket);
     } else if ($("customerList")) {
       if (bucket === "all") window.showAllCustomers();

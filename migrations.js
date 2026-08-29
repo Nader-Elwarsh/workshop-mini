@@ -34,8 +34,55 @@
     }
   }
 
+  // ترحيل 2 → 3: اعتماد دورة حالات أمر الشغل الرسمية (جديد / جاري التنفيذ
+  // / مكتمل / ملغي) وحالات الورشة الرسمية (غير مطلوب / تم السحب / تم
+  // التسليم)، وإزالة حقل الأولوية اللي بقى غير مستخدم في أوامر الشغل.
+  // راجع WORK_ORDER_LIFECYCLE_APPROVED.md لتفاصيل الدورة المعتمدة.
+  function migrate2to3() {
+    let K = window.K;
+    const STATUS_MAP = {
+      "جديد": "جديد",
+      "تم التواصل": "جاري التنفيذ",
+      "مجدول": "جاري التنفيذ",
+      "جاري الفحص": "جاري التنفيذ",
+      "انتظار موافقة العميل": "جاري التنفيذ",
+      "تحت الإصلاح": "جاري التنفيذ",
+      "جاري التنفيذ": "جاري التنفيذ",
+      "مكتمل": "مكتمل",
+      "ملغي": "ملغي"
+    };
+    const WORKSHOP_MAP = {
+      "غير مطلوب": "غير مطلوب",
+      "مطلوب السحب": "تم السحب",
+      "تم السحب": "تم السحب",
+      "استلام الورشة": "تم السحب",
+      "تحت الإصلاح": "تم السحب",
+      "جاهز للتسليم": "تم السحب",
+      "تم التسليم": "تم التسليم"
+    };
+    let requests = arr(K.r);
+    requests.forEach(r => {
+      r.status = STATUS_MAP[r.status] || "جديد";
+      if (r.workshopStatus) r.workshopStatus = WORKSHOP_MAP[r.workshopStatus] || "غير مطلوب";
+      if ("priority" in r) delete r.priority;
+      if (!Array.isArray(r.statusHistory)) {
+        r.statusHistory = [{ from: "", to: r.status, at: r.createdAt || new Date().toISOString() }];
+      }
+    });
+    put(K.r, requests);
+
+    let s = get(K.s, null);
+    if (s) {
+      s.orderStatuses = ["جديد", "جاري التنفيذ", "مكتمل", "ملغي"];
+      s.workshopStatuses = ["غير مطلوب", "تم السحب", "تم التسليم"];
+      delete s.priorities;
+      put(K.s, s);
+    }
+  }
+
   const MIGRATIONS = [
-    { from: 1, to: 2, run: migrate1to2 }
+    { from: 1, to: 2, run: migrate1to2 },
+    { from: 2, to: 3, run: migrate2to3 }
   ];
 
   async function runMigrations() {
