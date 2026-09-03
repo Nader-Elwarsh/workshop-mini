@@ -20,7 +20,7 @@
 (function (window) {
   "use strict";
 
-  const K = { c: "wf_c", d: "wf_d", r: "wf_r", p: "wf_p", s: "wf_s", m: "wf_m", e: "wf_e", tr: "wf_tr", tasks: "wf_tasks" };
+  const K = { c: "wf_c", d: "wf_d", r: "wf_r", p: "wf_p", s: "wf_s", m: "wf_m", e: "wf_e", tr: "wf_tr", tasks: "wf_tasks", wtx: "wf_wallet_tx" };
 
   const def = {
     centers: ["مطاي", "بني مزار"],
@@ -37,7 +37,17 @@
       أجهزة_أخرى: ["عام"]
     },
     brands: ["Fresh", "Unionaire", "Tornado", "Beko", "LG", "Samsung", "Sharp", "Ariston", "Zanussi", "Whirlpool", "Indesit", "White Point", "Kiriazi", "Ideal", "Fagor", "Daewoo", "Hitachi", "Panasonic", "Carrier", "Midea", "Haier", "Gree", "TCL", "فريش", "توشيبا العربى", "كريازى"],
-    partCats: ["ثلاجات وفريزرات", "غسالات", "تكييف", "سخانات", "كهرباء وإلكترونيات", "مواتير", "كمبروسرات", "أخرى"]
+    partCats: ["ثلاجات وفريزرات", "غسالات", "تكييف", "سخانات", "كهرباء وإلكترونيات", "مواتير", "كمبروسرات", "أخرى"],
+    // المحافظ: الأماكن اللي بتتحرك منها الفلوس فعليًا (محفظة شخصية، محافظ موبايل، إنستاباي...).
+    // قابلة للإضافة والحذف والتعديل بالكامل من الإعدادات (زي أي قائمة تانية في النظام).
+    // (المحافظ الافتراضية دي بتتفرض على أول تشغيل بس؛ للمستخدمين الحاليين
+    // اللي عندهم بيانات محفوظة بالفعل، migrate3to4 في migrations.js هي اللي
+    // بتضيف فودافون كاش وأورنج كاش بدون ما تمسح أي محفظة موجودة.)
+    wallets: ["محفظتي الشخصية", "محفظة فودافون كاش", "محفظة أورنج كاش", "إنستاباي"],
+    // تصنيف حركة المحفظة (شخصي / تشغيل / تحصيل عميل...). "تحصيل عميل" مستخدم
+    // تلقائيًا لما تُنشأ الحركة من عربون أو تحصيل نهائي لأمر شغل، فيُفضّل عدم
+    // حذفه، لكنه قابل لإعادة التسمية زي أي عنصر تاني.
+    walletCategories: ["تحصيل عميل", "مصروف شخصي", "مصروف تشغيل", "سلفة / تحويل", "أخرى"]
   };
 
   function get(k, f = []) {
@@ -61,7 +71,7 @@
      يتضاف (نعتبرها إصدار 1 ضمنيًا).
      --------------------------------------------------------------------- */
   const SCHEMA_KEY = "wf_schema_version";
-  const CURRENT_SCHEMA_VERSION = 3;
+  const CURRENT_SCHEMA_VERSION = 5;
   function getSchemaVersion() {
     let v = parseInt(localStorage.getItem(SCHEMA_KEY), 10);
     return Number.isFinite(v) && v > 0 ? v : 1;
