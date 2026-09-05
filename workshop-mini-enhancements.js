@@ -91,6 +91,38 @@
     const main = typeof addressText === "function" ? addressText(c.mainAddress || {}) : "";
     const extra = typeof addressText === "function" ? addressText(c.extraAddress || {}) : "";
 
+    // إجمالي ما دفعه العميل فعليًا: الأوامر المقفولة/المدفوعة بالكامل تدخل
+    // بإجماليها كاملاً، والأوامر المفتوحة تدخل بالعربون المحصّل منها فقط.
+    // ده بيفرق عن "إجمالي قيمة التعامل" اللي بيشمل حتى المبالغ اللي لسه
+    // ما اتحصلتش، وعن "المتبقي" اللي بيوضح العميل مديون بكام لحد دلوقتي.
+    const totalOrdersValue = rs.reduce(function (a, r) { return a + (+r.total || 0); }, 0);
+    const totalPaid = rs.reduce(function (a, r) {
+      return a + ((r.closed || r.paid) ? (+r.total || 0) : Math.min(+r.deposit || 0, +r.total || 0));
+    }, 0);
+    const totalRemaining = rs.reduce(function (a, r) {
+      return a + (r.closed || r.paid ? 0 : Math.max(0, (+r.total || 0) - (+r.deposit || 0)));
+    }, 0);
+
+    // أكتر قطعة غيار اتصرفت مع هذا العميل عبر كل أوامره: بنجمع كل بنود
+    // قطع الغيار (غير الخارجية) في كل أوامره حسب partId، وناخد الأعلى
+    // في إجمالي المبلغ المصروف عليها.
+    const partUsage = {};
+    rs.forEach(function (r) {
+      (r.parts || []).forEach(function (part) {
+        if (part.external || !part.partId) return;
+        const e = (partUsage[part.partId] ||= { qty: 0, amount: 0 });
+        e.qty += (+part.qty || 0);
+        e.amount += (+part.qty || 0) * (+part.sell || 0);
+      });
+    });
+    const topPartEntry = Object.entries(partUsage).sort(function (a, b) { return b[1].amount - a[1].amount; })[0];
+    const topPartLabel = topPartEntry
+      ? (function () {
+          const p = stockRows().find(function (x) { return x.id === topPartEntry[0]; });
+          return `${esc(p?.name || "قطعة محذوفة")} (${topPartEntry[1].qty})`;
+        })()
+      : "—";
+
     el.innerHTML = `
       <div class="profile">
         <div class="page-head">
@@ -108,17 +140,25 @@
           <div class="kv"><b>🔧 عدد الأجهزة</b>${ds.length}</div>
           <div class="kv"><b>🛠️ عدد أوامر الشغل</b>${rs.length}</div>
         </div>
+        <div class="report-cards" style="margin-top:10px">
+          <div class="report-card"><span>📊 إجمالي قيمة التعامل</span><b>${totalOrdersValue.toFixed(2)} ج</b></div>
+          <div class="report-card"><span>💰 إجمالي ما دفعه العميل</span><b>${totalPaid.toFixed(2)} ج</b></div>
+          <div class="report-card"><span>🧾 المتبقي عليه حاليًا</span><b>${totalRemaining.toFixed(2)} ج</b></div>
+          <div class="report-card"><span>🔧 أكتر قطعة اتصرفت معاه</span><b>${topPartLabel}</b></div>
+        </div>
       </div>
 
       <h2>🔧 الأجهزة</h2>
       ${ds.length ? ds.map(function (d) {
-        const count = requestRows().filter(function (r) { return r.deviceId === d.id; }).length;
+        const deviceOrders = requestRows().filter(function (r) { return r.deviceId === d.id; });
+        const count = deviceOrders.length;
+        const isRecurring = count >= 2;
         return `<div class="item record-card">
           <div class="card-side-actions">
             <a class="primary small-btn" href="device.html?id=${d.id}">فتح الجهاز 360°</a>
           </div>
           <div class="record-main">
-            <div><a href="device.html?id=${d.id}"><b>${esc(d.type)} — ${esc(d.brand)}</b></a></div>
+            <div><a href="device.html?id=${d.id}"><b>${esc(d.type)} — ${esc(d.brand)}</b></a>${isRecurring ? ' <span class="badge simple-line-warn" style="display:inline-block">🔁 يتكرر عطله</span>' : ""}</div>
             <div>${esc(d.category || "—")} • ${esc(d.model || "بدون موديل")}</div>
             <div class="badge">🛠️ ${count} أوامر شغل</div>
           </div>
