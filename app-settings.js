@@ -74,11 +74,16 @@ function settingsPage(){
   let host=document.getElementById("settingsDynamic");
   if(host)host.innerHTML=`<section class="panel setting-list-panel"><div class="page-head"><h2>🛠️ دورة حالات أمر الشغل</h2></div><div class="hint">الحالات (جديد / جاري التنفيذ / مكتمل / ملغي) وحالات الورشة (غير مطلوب / تم السحب / تم التسليم) بقت دورة معتمدة وثابتة، ومش قابلة للتعديل من هنا. الأولوية اتشالت خالص من أوامر الشغل. راجع ملف WORK_ORDER_LIFECYCLE_APPROVED.md لتفاصيل الدورة والانتقالات المسموحة.</div></section>`+returnWindowSettingHtml()+orderTagsSettingHtml()+[["executionPlaces","أماكن التنفيذ","📍"],["paymentStatuses","حالات الدفع","💳"],["units","وحدات القياس","📏"],["addressTypes","أنواع العناوين","🏠"],["expenseCategories","تصنيفات مصاريف التشغيل (الفرعية)","🧯"]].map(x=>listEditorHtml(...x)).join("");
   let walletHost=document.getElementById("walletSettingsDynamic");
-  if(walletHost)walletHost.innerHTML=[["wallets","الحسابات (محفظتي الشخصية، فودافون كاش، أورنج كاش، إنستاباي... أضف أي حساب تحب)","💳"],["walletCategories","تصنيفات حركة الحسابات (شخصي / تشغيل / تحصيل عميل...)","🏷️"]].map(x=>inlineListEditorHtml(...x)).join("");
+  if(walletHost)walletHost.innerHTML=defaultWalletSettingHtml()+[["wallets","الحسابات (محفظتي الشخصية، فودافون كاش، أورنج كاش، إنستاباي... أضف أي حساب تحب)","💳"],["walletCategories","تصنيفات حركة الحسابات (شخصي / تشغيل / تحصيل عميل...)","🏷️"]].map(x=>inlineListEditorHtml(...x)).join("");
   let rtHost=document.getElementById("routeThemeSettings");
   if(rtHost)rtHost.innerHTML=routeThemeSettingsHtml();
   bindSortableSettings();
 }
+function defaultWalletSettingHtml(){
+  let s=settings(),wallets=s.wallets||[],cur=s.defaultWallet||"";
+  return `<section class="panel setting-list-panel" id="default-wallet-panel"><div class="page-head"><h2>⭐ المحفظة الافتراضية</h2></div><div class="hint">أي دفعة/عربون أو تقفيل أمر شغل هيتحدد له تلقائي المحفظة دي، إلا لو غيّرتها بنفسك وقت العملية.</div><select id="defaultWalletSelect" onchange="setDefaultWallet(this.value)"><option value="">بدون تحديد افتراضي</option>${wallets.map(w=>`<option ${cur===w?"selected":""}>${esc(w)}</option>`).join("")}</select></section>`;
+}
+function setDefaultWallet(v){let s=settings();s.defaultWallet=v||"";put(K.s,s);settingsPage()}
 function returnWindowSettingHtml(){
   let s=settings(),days=+s.returnWindowDays||7;
   return `<section class="panel setting-list-panel" id="return-window-panel"><div class="page-head"><h2>🔄 مهلة المرتجع بعد إغلاق الأمر</h2></div><div class="hint">أمر الشغل المكتمل وغير المغلق يفضل قابل للإرجاع/التعديل في أي وقت. أما بعد "تم الدفع بالكامل وإغلاق الأمر"، فبيبقى قابل للإرجاع فقط خلال عدد الأيام ده من تاريخ الإغلاق؛ بعدها مفيش مرتجع ولا تعديل.</div><div class="inline"><input id="returnWindowDaysInput" type="number" min="1" step="1" value="${days}" style="max-width:110px"><button class="secondary mini-action" onclick="setReturnWindowDays()">💾 حفظ المدة</button><span class="hint">حاليًا: ${days} يوم</span></div></section>`;

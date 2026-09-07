@@ -11,22 +11,13 @@
   <input id="reportMonth" type="month">
   <input id="reportWeek" type="week" class="hidden">
   <div id="monthlyReport"></div>
-  <details class="expense-panel">
-    <summary>🧯 مصاريف التشغيل</summary>
-    <div class="hint">كل مصروف تشغيل بيتسجل كحركة صرف فعلية من محفظة تختارها، فرصيدها بيتحدث تلقائيًا؛ التصنيف الفرعي (وقود، صيانة، إيجار...) قابل للتعديل من ⚙️ الإعدادات.</div>
-    <div class="form-grid expense-form">
-      <label>التاريخ<input id="expDate" type="date"></label>
-      <label>المحفظة<select id="expWallet"></select></label>
-      <label>تصنيف المصروف<select id="expCategory"></select></label>
-      <label>المبلغ<input id="expAmount" type="number" step="0.01" min="0" placeholder="0.00"></label>
-      <label class="wide">السبب<input id="expReason" placeholder="مثال: بنزين، غيار زيت..."></label>
-      <label class="wide">ملاحظة<input id="expNote" placeholder="اختياري"></label>
-    </div>
-    <button type="button" class="primary expense-save" onclick="addExpense()">💾 حفظ المصروف</button>
+  <details class="expense-panel" open>
+    <summary>🧯 تفصيل مصاريف التشغيل حسب النوع (الفترة المختارة)</summary>
+    <div class="hint">سجّلي أي مصروف تشغيل من نموذج "➖ صرف" في صفحة الحسابات الرئيسية أو صفحة أي محفظة — اختاري تصنيف "مصروف تشغيل" ثم نوعه الفرعي (وقود، صيانة، إيجار...)، وهيتبوّب هنا تلقائي حسب النوع. التصنيفات الفرعية قابلة للتعديل من ⚙️ الإعدادات.</div>
     <div id="expenseList"></div>
   </details>
 </section>
 </main><script src="notif-shared.js"></script>
-  <script src="shared-data.js"></script><script src="global-search.js"></script><script src="image-store.js"></script><script src="migrations.js"></script><script src="treasury.js"></script><script src="wallets.js"></script><script src="tasks.js"></script><script src="app-shared.js"></script><script src="app-dashboard-reports.js"></script><script src="app-customers.js"></script><script src="app-devices.js"></script><script src="app-requests.js"></script><script src="app-settings-lists.js"></script><script src="app-parts.js"></script><script src="app-settings.js"></script><script src="app-delete-tools.js"></script><script src="app-route-followup.js"></script><script src="app-data-management.js"></script><script src="app-quick-add.js"></script><script src="app-notifications-bootstrap.js"></script><script src="print-share.js"></script>
+  <script src="shared-data.js"></script><script src="global-search.js"></script><script src="bottom-nav.js"></script><script src="image-store.js"></script><script src="migrations.js"></script><script src="treasury.js"></script><script src="wallets.js"></script><script src="tasks.js"></script><script src="app-shared.js"></script><script src="app-dashboard-reports.js"></script><script src="app-customers.js"></script><script src="app-devices.js"></script><script src="app-requests.js"></script><script src="app-settings-lists.js"></script><script src="app-parts.js"></script><script src="app-settings.js"></script><script src="app-delete-tools.js"></script><script src="app-route-followup.js"></script><script src="app-data-management.js"></script><script src="app-quick-add.js"></script><script src="app-notifications-bootstrap.js"></script><script src="print-share.js"></script>
 <script>document.addEventListener("DOMContentLoaded",()=>renderWallets())</script>
 </body></html>

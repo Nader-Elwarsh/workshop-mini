@@ -140,6 +140,7 @@
     s.villageGroups = s.villageGroups || {};
     s.expenseCategories = s.expenseCategories || ["وقود ومواصلات", "صيانة عدة وأدوات", "إيجار وفواتير", "أخرى"];
     s.routeOrder = Array.isArray(s.routeOrder) ? s.routeOrder : [];
+    s.defaultWallet = typeof s.defaultWallet === "string" ? s.defaultWallet : "";
     s.returnWindowDays = Number.isFinite(+s.returnWindowDays) && +s.returnWindowDays > 0 ? +s.returnWindowDays : 7;
     put(K.s, s);
     return s;

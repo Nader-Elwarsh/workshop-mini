@@ -50,7 +50,8 @@ function personalVsWorkshopTotals(){
 --------------------------------------------------------------------- */
 function addWalletManual(type,prefix="wt"){
   let amountEl=document.getElementById(prefix+"Amount"),walletEl=document.getElementById(prefix+"Wallet"),
-      categoryEl=document.getElementById(prefix+"Category"),reasonEl=document.getElementById(prefix+"Reason"),
+      categoryEl=document.getElementById(prefix+"Category"),subCategoryEl=document.getElementById(prefix+"SubCategory"),
+      reasonEl=document.getElementById(prefix+"Reason"),
       dateEl=document.getElementById(prefix+"Date"),timeEl=document.getElementById(prefix+"Time"),
       noteEl=document.getElementById(prefix+"Note");
   let amount=+amountEl?.value||0,wallet=(walletEl?.value||"").trim(),
@@ -59,8 +60,12 @@ function addWalletManual(type,prefix="wt"){
   if(amount<=0)return alert("أدخل مبلغ صحيح.");
   if(!wallet)return alert("اختر المحفظة.");
   if(!reason)return alert("اكتب سبب الحركة.");
+  // نوع المصروف الفرعي (وقود، صيانة، إيجار...) بيتسجل بس لو التصنيف
+  // "مصروف تشغيل"، عشان يبقى نفس مبدأ التبويب في كشف مصاريف التشغيل أيًا
+  // كان الفورم اللي اتسجلت منه الحركة (صفحة الحسابات أو صفحة محفظة بعينها).
+  let subCategory=category==="مصروف تشغيل"?(subCategoryEl?.value||""):"";
   let entry={
-    id:id(),refKey:null,manualOverride:true,deleted:false,type,amount,wallet,category,
+    id:id(),refKey:null,manualOverride:true,deleted:false,type,amount,wallet,category,subCategory,
     date,time,reason,note:(noteEl?.value||"").trim(),source:"manual",createdAt:new Date().toISOString()
   };
   put(K.wtx,arr(K.wtx).concat(entry));
@@ -69,6 +74,14 @@ function addWalletManual(type,prefix="wt"){
 function walletManualFromPage(type){
   addWalletManual(type,"wt");
   renderWallets();
+}
+// إظهار/إخفاء خانة "نوع مصروف التشغيل" الفرعية بس لما التصنيف المختار
+// يكون "مصروف تشغيل" — بتتنادى من onchange خانة التصنيف في أي فورم
+// (صفحة الحسابات الرئيسية "wt" أو صفحة محفظة بعينها "wd").
+function toggleExpenseSubCategory(prefix){
+  let catEl=document.getElementById(prefix+"Category"),wrap=document.getElementById(prefix+"SubCatWrap");
+  if(!catEl||!wrap)return;
+  wrap.classList.toggle("hidden",catEl.value!=="مصروف تشغيل");
 }
 function editWalletTx(txId){
   let a=arr(K.wtx),e=a.find(x=>x.id===txId);if(!e)return;
@@ -228,13 +241,15 @@ function walletDetailBalance(type,name){
 }
 function walletManualFromDetail(type,walletName){
   let amountEl=document.getElementById("wdAmount"),categoryEl=document.getElementById("wdCategory"),
+      subCategoryEl=document.getElementById("wdSubCategory"),
       reasonEl=document.getElementById("wdReason"),dateEl=document.getElementById("wdDate"),
       timeEl=document.getElementById("wdTime"),noteEl=document.getElementById("wdNote");
   let amount=+amountEl?.value||0,category=categoryEl?.value||"أخرى",reason=(reasonEl?.value||"").trim(),
       date=dateEl?.value||localDateKey(new Date()),time=timeEl?.value||new Date().toTimeString().slice(0,5);
   if(amount<=0)return alert("أدخل مبلغ صحيح.");
   if(!reason)return alert("اكتب سبب الحركة.");
-  let entry={id:id(),refKey:null,manualOverride:true,deleted:false,type,amount,wallet:walletName,category,
+  let subCategory=category==="مصروف تشغيل"?(subCategoryEl?.value||""):"";
+  let entry={id:id(),refKey:null,manualOverride:true,deleted:false,type,amount,wallet:walletName,category,subCategory,
     date,time,reason,note:(noteEl?.value||"").trim(),source:"manual",createdAt:new Date().toISOString()};
   put(K.wtx,arr(K.wtx).concat(entry));
   renderWalletDetail();
@@ -262,7 +277,8 @@ function renderWalletDetail(){
     <div class="treasury-actions">
       <div class="form-grid">
         <label>المبلغ<input id="wdAmount" type="number" step="0.01" min="0" placeholder="0.00"></label>
-        <label>التصنيف<select id="wdCategory">${categories.map(c=>`<option>${esc(c)}</option>`).join("")}</select></label>
+        <label>التصنيف<select id="wdCategory" onchange="toggleExpenseSubCategory('wd')">${categories.map(c=>`<option>${esc(c)}</option>`).join("")}</select></label>
+        <label id="wdSubCatWrap" class="${categories[0]==="مصروف تشغيل"?"":"hidden"}">نوع مصروف التشغيل<select id="wdSubCategory">${(settings().expenseCategories||[]).map(c=>`<option>${esc(c)}</option>`).join("")}</select></label>
         <label>التاريخ<input id="wdDate" type="date" value="${today}"></label>
         <label>الوقت<input id="wdTime" type="time" value="${new Date().toTimeString().slice(0,5)}"></label>
         <label class="wide">السبب<input id="wdReason" placeholder="مثال: سحب شخصي، بنزين..."></label>
@@ -295,7 +311,7 @@ function renderWalletDetail(){
 --------------------------------------------------------------------- */
 function renderWallets(){
   let el=document.getElementById("walletsPage");if(!el)return;
-  let wallets=settings().wallets||[],categories=settings().walletCategories||[];
+  let wallets=settings().wallets||[],categories=settings().walletCategories||[],expenseCategories=settings().expenseCategories||[];
   let overview=walletsOverview(),catTotals=walletCategoryTotals(),pvw=personalVsWorkshopTotals();
   let today=localDateKey(new Date());
   el.innerHTML=`
@@ -322,7 +338,8 @@ function renderWallets(){
       <div class="form-grid">
         <label>المبلغ<input id="wtAmount" type="number" step="0.01" min="0" placeholder="0.00"></label>
         <label>المحفظة<select id="wtWallet">${wallets.map(w=>`<option>${esc(w)}</option>`).join("")}</select></label>
-        <label>التصنيف<select id="wtCategory">${categories.map(c=>`<option>${esc(c)}</option>`).join("")}</select></label>
+        <label>التصنيف<select id="wtCategory" onchange="toggleExpenseSubCategory('wt')">${categories.map(c=>`<option>${esc(c)}</option>`).join("")}</select></label>
+        <label id="wtSubCatWrap" class="${categories[0]==="مصروف تشغيل"?"":"hidden"}">نوع مصروف التشغيل<select id="wtSubCategory">${expenseCategories.map(c=>`<option>${esc(c)}</option>`).join("")}</select></label>
         <label>التاريخ<input id="wtDate" type="date" value="${today}"></label>
         <label>الوقت<input id="wtTime" type="time" value="${new Date().toTimeString().slice(0,5)}"></label>
         <label class="wide">السبب<input id="wtReason" placeholder="مثال: عربون، سحب شخصي، بنزين..."></label>
