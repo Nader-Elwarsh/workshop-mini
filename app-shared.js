@@ -98,6 +98,77 @@ function requestCreatedDate(r){
   }
   return null;
 }
+/* V11.54: ترميز لوني حسب عمر أمر الشغل (منذ تاريخ التسجيل)، عشان لو الأوامر
+   المفتوحة (جديد / جاري التنفيذ) كتير مع بعض في القايمة يبقى سهل تفرّق
+   بصريًا مين أحدث ومين قاعد بقاله وقت أطول محتاج ينفّذ الأول.
+   الأولوية اليدوية لسه مش موجودة (متوافق مع WORK_ORDER_LIFECYCLE_APPROVED.md) —
+   ده مجرد لون إرشادي بيتغير أوتوماتيك حسب الوقت، مش حقل بيتعدّل يدويًا. */
+/* V11.54: ترميز لوني حسب عمر أمر الشغل (منذ تاريخ التسجيل)، عشان لو الأوامر
+   المفتوحة (جديد / جاري التنفيذ) كتير مع بعض في القايمة يبقى سهل تفرّق
+   بصريًا مين أحدث ومين قاعد بقاله وقت أطول محتاج ينفّذ الأول.
+   الأولوية اليدوية لسه مش موجودة (متوافق مع WORK_ORDER_LIFECYCLE_APPROVED.md) —
+   ده مجرد لون إرشادي بيتغير أوتوماتيك حسب الوقت، مش حقل بيتعدّل يدويًا.
+   3 ألوان بس (مش 6) بناءً على طلب المستخدم، ومرتبطة بنفس رقم "تنبيه
+   الأوامر القديمة" اللي المستخدم بيتحكم فيه من الإعدادات (s.overdueAlertDays):
+   لو الأمر وصل لعدد الأيام ده أو أكتر يبقى أحمر (ونفسه اللي بيدخل عداد
+   التنبيه في الداشبورد)، ونصّه تقريبًا يبقى أصفر، وأقل من كده أخضر. */
+function requestAgeDays(r){
+  let ms=requestAgeMs(r);
+  return ms===null?null:Math.floor(ms/86400000)
+}
+function requestAgeInfo(r){
+  if(!r||r.status==="مكتمل"||r.status==="ملغي")return null;
+  let days=requestAgeDays(r);
+  if(days===null)return null;
+  let threshold=Number.isFinite(+settings().overdueAlertDays)&&+settings().overdueAlertDays>0?+settings().overdueAlertDays:7;
+  let mid=Math.max(1,Math.floor(threshold/2));
+  let cls,dot,range;
+  if(days<mid){cls="age-b0";dot="🟢";range=`أقل من ${mid} يوم`}
+  else if(days<threshold){cls="age-b1";dot="🟡";range=`من ${mid} لحد ${threshold-1} يوم`}
+  else{cls="age-b2";dot="🔴";range=`${threshold} يوم فأكتر`}
+  return{days,cls,dot,range,label:days===0?"جديد اليوم":(days===1?"من يوم":`من ${days} يوم`)}
+}
+function requestAgeLegendHtml(){
+  let threshold=Number.isFinite(+settings().overdueAlertDays)&&+settings().overdueAlertDays>0?+settings().overdueAlertDays:7;
+  let mid=Math.max(1,Math.floor(threshold/2));
+  let items=[
+    {cls:"age-b0",dot:"🟢",range:`أقل من ${mid} يوم`},
+    {cls:"age-b1",dot:"🟡",range:`من ${mid} لحد ${threshold-1} يوم`},
+    {cls:"age-b2",dot:"🔴",range:`${threshold} يوم فأكتر (بيدخل تنبيه الداشبورد)`}
+  ];
+  return `<div class="age-legend">${items.map(b=>`<span class="age-legend-item ${b.cls}">${b.dot} ${esc(b.range)}</span>`).join("")}</div>`
+}
+function requestIsStale(r){
+  if(!r||r.status==="مكتمل"||r.status==="ملغي"||r.closed)return false;
+  let days=requestAgeDays(r);
+  if(days===null)return false;
+  let threshold=Number.isFinite(+settings().overdueAlertDays)&&+settings().overdueAlertDays>0?+settings().overdueAlertDays:7;
+  return days>=threshold
+}
+/* V11.56: نفس ترميز عمر الأمر، لكن معمَّم على أي قايمة أوامر (عميل/جهاز/خط
+   سير) بحيث ياخد لون أسوأ (أقدم) أمر مفتوح فيها — نفس فكرة "افتح عليه
+   أمر ومحتاج تتابعه" بس على مستوى العميل/الجهاز مش الأمر بس. */
+function worstRequestAgeInfo(list){
+  let best=null;
+  (list||[]).forEach(r=>{
+    let info=requestAgeInfo(r);
+    if(info&&(!best||info.days>best.days))best=info;
+  });
+  return best;
+}
+/* V11.57: لون ثابت لكل تصنيف قطع غيار (غسالات/تلاجات/تكييفات...) عشان
+   يبقى سهل تفرّق بينهم بصريًا في المخزن، بنفس فكرة تلوين عمر الأمر بس
+   هنا اللون ثابت حسب التصنيف نفسه مش حسب الوقت. بيتحسب من هاش بسيط
+   لاسم التصنيف، فأي تصنيف (حتى لو المستخدم ضاف واحد جديد من الإعدادات)
+   ياخد لون ثابت تلقائي من غير أي إعداد إضافي.  */
+var PART_CATEGORY_PALETTE=["cat-c0","cat-c1","cat-c2","cat-c3","cat-c4","cat-c5","cat-c6","cat-c7"];
+function categoryColorClass(cat){
+  let s=String(cat||"").trim();
+  if(!s)return "";
+  let h=0;
+  for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0}
+  return PART_CATEGORY_PALETTE[h%PART_CATEGORY_PALETTE.length];
+}
 function requestStartedDate(r){return requestTimingDate(r,"startedAt",true)}
 function requestCompletedDate(r){return requestTimingDate(r,"completedAt",true)}
 function requestWorkshopStartedDate(r){
@@ -120,10 +191,6 @@ function formatDuration(ms){
 }
 function requestTotalCompletionMs(r){
   let s=requestCreatedDate(r),e=requestCompletedDate(r);
-  return durationMs(s,e);
-}
-function requestExecutionMs(r){
-  let s=requestStartedDate(r),e=requestCompletedDate(r);
   return durationMs(s,e);
 }
 function requestWorkshopExecutionMs(r){
@@ -179,13 +246,7 @@ function closeQuickAdd(boxId){let box=document.getElementById(boxId);if(!box)ret
 
 /* قسم المهام والمتابعة اتنقل لملف tasks.js (راجع الملف ده لو محتاج تعدل فيه). */
 /* customerName, deviceName, addresses, addressText: منقولة لملف shared-data.js */
-function fillCenters(el,selected=""){if(!el)return;let s=settings();el.innerHTML='<option value="">اختر المركز</option>'+s.centers.map(x=>`<option ${x===selected?"selected":""}>${esc(x)}</option>`).join("")}
-function fillVillages(el,center,selected=""){if(!el)return;let vs=settings().villages[center]||[];el.innerHTML='<option value="">اختر القرية</option>'+vs.map(x=>`<option ${x===selected?"selected":""}>${esc(x)}</option>`).join("")}
 function fillCustomer(el,selected=""){if(!el)return;el.innerHTML='<option value="">اختر العميل</option>'+arr(K.c).map(x=>`<option value="${x.id}" ${x.id===selected?"selected":""}>${esc(x.name)} - ${esc(x.phone)}</option>`).join("")}
 function fillAddress(el,cid,selected=""){let c=arr(K.c).find(x=>x.id===cid);if(!el){return}el.innerHTML='<option value="">اختر العنوان</option>'+(c?addresses(c).map(a=>`<option value="${a.key}" ${a.key===selected?"selected":""}>${esc(a.label)} — ${esc(addressText(a))}</option>`).join(""):"")}
 function fillList(el,key,selected="",placeholder="اختر"){if(!el)return;let a=settings()[key]||[];let extra=selected&&!a.includes(selected)?[selected]:[];el.innerHTML=`<option value="">${placeholder}</option>`+a.concat(extra).map(x=>`<option value="${esc(x)}" ${x===selected?"selected":""}>${esc(x)}${extra.includes(x)?" (قديم/متوقف)":""}</option>`).join("")}
-function addOrderTagInline(){let el=document.getElementById("rTag");if(!el)return;let v=prompt("اكتب اسم التصنيف الجديد:");if(!v||!v.trim())return;v=v.trim();let s=settings();s.orderTags=s.orderTags||[];if(!s.orderTags.includes(v))s.orderTags.push(v);put(K.s,s);fillList(el,"orderTags",v,"🏷️ بدون تصنيف")}
-function fillTypes(el,selected=""){let t=settings().types;el.innerHTML='<option value="">اختر النوع</option>'+Object.keys(t).map(x=>`<option ${x===selected?"selected":""}>${esc(x.replace("_"," "))}</option>`).join("")}
-function fillCats(el,type,selected=""){let t=settings().types[type]||[];el.innerHTML='<option value="">اختر التصنيف</option>'+t.map(x=>`<option ${x===selected?"selected":""}>${esc(x)}</option>`).join("")}
-function fillBrands(el,selected=""){el.innerHTML='<option value="">اختر الماركة</option>'+settings().brands.map(x=>`<option ${x===selected?"selected":""}>${esc(x)}</option>`).join("")}
 function dayKeyLocal(v){let d=new Date(v);return Number.isNaN(d.getTime())?"":`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}

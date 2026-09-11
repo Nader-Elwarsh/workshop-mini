@@ -20,7 +20,7 @@
 (function (window) {
   "use strict";
 
-  const K = { c: "wf_c", d: "wf_d", r: "wf_r", p: "wf_p", s: "wf_s", m: "wf_m", e: "wf_e", tr: "wf_tr", tasks: "wf_tasks", wtx: "wf_wallet_tx" };
+  const K = { c: "wf_c", d: "wf_d", r: "wf_r", p: "wf_p", s: "wf_s", m: "wf_m", e: "wf_e", tr: "wf_tr", tasks: "wf_tasks", wtx: "wf_wallet_tx", fc: "wf_fault_codes" };
 
   const def = {
     centers: ["مطاي", "بني مزار"],
@@ -83,7 +83,7 @@
      يتضاف (نعتبرها إصدار 1 ضمنيًا).
      --------------------------------------------------------------------- */
   const SCHEMA_KEY = "wf_schema_version";
-  const CURRENT_SCHEMA_VERSION = 5;
+  const CURRENT_SCHEMA_VERSION = 6;
   function getSchemaVersion() {
     let v = parseInt(localStorage.getItem(SCHEMA_KEY), 10);
     return Number.isFinite(v) && v > 0 ? v : 1;
@@ -139,9 +139,21 @@
     s.orderTagsDisabled = Array.isArray(s.orderTagsDisabled) ? s.orderTagsDisabled : [];
     s.villageGroups = s.villageGroups || {};
     s.expenseCategories = s.expenseCategories || ["وقود ومواصلات", "صيانة عدة وأدوات", "إيجار وفواتير", "أخرى"];
+    // تصنيفات فرعية للمصاريف الشخصية (زي تصنيفات مصاريف التشغيل الفرعية بالظبط)،
+    // عشان "مصروف شخصي" يبقى قابل للتفصيل هو كمان في إحصائيات الصرف، مش بس "تشغيل".
+    s.personalExpenseCategories = s.personalExpenseCategories || ["مواصلات", "أكل وشرب", "متفرقات"];
+    // حد أقصى اختياري لبعض الحسابات (زي إنستاباي): بدل ما تتضاف المحفظة دي بكامل
+    // رصيدها الحقيقي (اللي ممكن يكون جزء من حساب بنكي شخصي مش عايز يتسجل هنا
+    // بالكامل)، الرصيد المعروض والمحسوب في الإجمالي بيتقف عند الرقم ده كحد أقصى.
+    // {} = بدون حد أقصى لأي محفظة. قابل للتعديل بالكامل من ⚙️ الإعدادات ← الحسابات.
+    s.walletCaps = s.walletCaps && typeof s.walletCaps === "object" && !Array.isArray(s.walletCaps) ? s.walletCaps : {};
     s.routeOrder = Array.isArray(s.routeOrder) ? s.routeOrder : [];
     s.defaultWallet = typeof s.defaultWallet === "string" ? s.defaultWallet : "";
     s.returnWindowDays = Number.isFinite(+s.returnWindowDays) && +s.returnWindowDays > 0 ? +s.returnWindowDays : 7;
+    // V11.54: عدد الأيام اللي لو أمر شغل مفتوح (جديد/جاري التنفيذ) قعد من غير
+    // ما يتقفل أكتر منه، يتلوّن أحمر في القايمة ويدخل عداد "🔥 يحتاج انتباه"
+    // في الداشبورد. المستخدم بيتحكم فيه بنفسه من ⚙️ الإعدادات.
+    s.overdueAlertDays = Number.isFinite(+s.overdueAlertDays) && +s.overdueAlertDays > 0 ? +s.overdueAlertDays : 7;
     put(K.s, s);
     return s;
   }

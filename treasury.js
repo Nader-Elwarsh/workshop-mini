@@ -17,11 +17,9 @@
 --------------------------------------------------------------------- */
 function treasuryEntries(){return arr(K.tr).filter(x=>!x.deleted)}
 function treasuryBalance(){return treasuryEntries().reduce((a,x)=>a+(x.type==="in"?(+x.amount||0):-(+x.amount||0)),0)}
-function upsertTreasuryEntry(refKey,data){return null}
 function removeTreasuryEntry(refKey){return false}
 function syncTreasuryForOrderDeposit(order){return null}
 function syncTreasuryForOrderClose(order,collected){return null}
-function syncTreasuryForExpense(e){return null}
 function addTreasuryManual(type){
   let amountEl=document.getElementById("trAmount"),reasonEl=document.getElementById("trReason"),
       dateEl=document.getElementById("trDate"),timeEl=document.getElementById("trTime"),

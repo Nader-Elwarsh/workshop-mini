@@ -11,7 +11,6 @@
    📋 المهام والمتابعة: قسم مستقل عن الدورة الأساسية.
 --------------------------------------------------------------------- */
 function taskRows(){return arr(K.tasks).filter(x=>!x.deleted)}
-function taskDateTime(t){return `${t.date||""}${t.time?"T"+t.time:""}`}
 function taskPriorityClass(p){return p==="عاجلة"?"negative":p==="عالية"?"high":""}
 function saveTask(){
   let title=(document.getElementById("taskTitle")?.value||"").trim();

@@ -344,14 +344,15 @@
       ${filtered.length ? filtered.map(c => {
         const ds = deviceRows().filter(d => d.customerId === c.id).length;
         const rs = requestRows().filter(r => r.customerId === c.id).length;
-        const ao = activeOrdersForCustomer(c.id).length;
+        const ao = activeOrdersForCustomer(c.id);
         const hw = hasWorkshopDeviceForCustomer(c.id);
         const lastDate = customerLastContactDate(c.id);
         const remain = customerRemainingTotal(c.id);
-        return `<div class="simple-record"><div class="simple-record-icon">👤</div><div class="simple-record-main">
+        const age = worstRequestAgeInfo(ao);
+        return `<div class="simple-record${age ? " " + age.cls : ""}"><div class="simple-record-icon">👤</div><div class="simple-record-main">
           <a href="customer.html?id=${c.id}"><b>${esc2(c.name)}</b></a><span>📞 ${esc2(c.phone || "—")}</span>
-          <small>🔧 ${ds} أجهزة • 🛠️ ${rs} أوامر${ao ? ` • 🔴 ${ao} فعال` : ""}${hw ? " • 🏭 جهاز في الورشة" : ""}</small>
-          <small>${lastDate ? `📅 آخر تعامل: ${lastDate.toLocaleDateString("ar-EG",{day:"2-digit",month:"2-digit",year:"2-digit"})}` : "📅 بدون تعامل سابق"}${remain > 0 ? ` • 💰 متبقي ${remain.toFixed(2)} ج` : ""}</small>
+          <small>🔧 ${ds} أجهزة • 🛠️ ${rs} أوامر${ao.length ? ` • 🔴 ${ao.length} فعال` : ""}${hw ? " • 🏭 جهاز في الورشة" : ""}</small>
+          <small>${lastDate ? `📅 آخر تعامل: ${lastDate.toLocaleDateString("ar-EG",{day:"2-digit",month:"2-digit",year:"2-digit"})}` : "📅 بدون تعامل سابق"}${remain > 0 ? ` • 💰 متبقي ${remain.toFixed(2)} ج` : ""}${age ? ` • <span class="age-badge ${age.cls}" title="⏱️ أقدم أمر مفتوح: ${esc2(age.range)}">${age.dot} ${esc2(age.label)}</span>` : ""}</small>
         </div><div class="simple-record-actions"><a class="secondary small-btn" href="customer.html?id=${c.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteCustomerRecord('${c.id}')">حذف</button></div></div>`;
       }).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
   });
@@ -439,7 +440,7 @@
       <option value="type" ${sortKey === "type" ? "selected" : ""}>النوع أبجديًا</option>
     </select>`;
     el.innerHTML = `<div class="simple-list-head"><b>${title}</b><div class="simple-list-head-actions">${sortSelectHtml}<button type="button" class="secondary small-btn" onclick="hideAllDevices()">رجوع للملخص</button></div></div>
-      ${filtered.length ? filtered.map(d => `<div class="simple-record"><div class="simple-record-icon">🔧</div><div class="simple-record-main"><a href="device.html?id=${d.id}"><b>${esc2(d.type)} — ${esc2(d.brand)}</b></a><span>${esc2(d.category||"—")} • ${esc2(d.model||"بدون موديل")}</span><small>👤 ${esc2(customerName(d.customerId))}${activeOrdersForDevice(d.id).length ? ` • 🔴 ${activeOrdersForDevice(d.id).length} أمر فعال` : ""}${hasWorkshopDevice(d.id) ? " • 🏭 في الورشة" : ""}</small></div><div class="simple-record-actions"><a class="secondary small-btn" href="device.html?id=${d.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteDeviceRecord('${d.id}')">حذف</button></div></div>`).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
+      ${filtered.length ? filtered.map(d => { const ao = activeOrdersForDevice(d.id); const age = worstRequestAgeInfo(ao); return `<div class="simple-record${age ? " " + age.cls : ""}"><div class="simple-record-icon">🔧</div><div class="simple-record-main"><a href="device.html?id=${d.id}"><b>${esc2(d.type)} — ${esc2(d.brand)}</b></a><span>${esc2(d.category||"—")} • ${esc2(d.model||"بدون موديل")}</span><small>👤 ${esc2(customerName(d.customerId))}${ao.length ? ` • 🔴 ${ao.length} أمر فعال` : ""}${hasWorkshopDevice(d.id) ? " • 🏭 في الورشة" : ""}${age ? ` • <span class="age-badge ${age.cls}" title="⏱️ أقدم أمر مفتوح: ${esc2(age.range)}">${age.dot} ${esc2(age.label)}</span>` : ""}</small></div><div class="simple-record-actions"><a class="secondary small-btn" href="device.html?id=${d.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteDeviceRecord('${d.id}')">حذف</button></div></div>`; }).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
   });
 
   /* ---------- المخزن ---------- */
@@ -525,7 +526,7 @@
       ).join("");
 
       const cards = Object.entries(cats).slice(0, 6).map(([k,n]) =>
-        `<div class="simple-stat" onclick="showPartsCategory('${k.replace(/'/g,"\\'")}')" role="button" tabindex="0"><span>${categoryIcon(k)}</span><b>${esc2(k)}</b><strong>${n}</strong><small>قطعة</small></div>`
+        `<div class="simple-stat ${categoryColorClass(k)}" onclick="showPartsCategory('${k.replace(/'/g,"\\'")}')" role="button" tabindex="0"><span>${categoryIcon(k)}</span><b>${esc2(k)}</b><strong>${n}</strong><small>قطعة</small></div>`
       ).join("");
 
       el.innerHTML = `
@@ -592,7 +593,7 @@
           const qty = +p.qty || 0, use = +p.use || 0, total = qty * use;
           const isLow = qty <= (+p.min || 0);
           return `<tr class="report-row-clickable" onclick="location.href='part.html?id=${p.id}'">
-            <td><a href="part.html?id=${p.id}">${esc2(p.name)}</a><br><small style="color:#8a97a3">${esc2(p.category || "—")} • ${esc2(p.code || "بدون كود")}</small></td>
+            <td><a href="part.html?id=${p.id}">${esc2(p.name)}</a><br><small style="color:#8a97a3"><span class="cat-dot ${categoryColorClass(p.category)}"></span>${esc2(p.category || "—")} • ${esc2(p.code || "بدون كود")}</small></td>
             <td>${qty}</td>
             <td>${use.toFixed(2)} ج</td>
             <td>${total.toFixed(2)} ج</td>
@@ -607,11 +608,11 @@
         const itemTotal = qty * use;
         const pct = use > 0 ? ((use - buy) / use * 100) : 0;
         return `
-        <div class="simple-record">
-          <div class="simple-record-icon">${categoryIcon(p.category)}</div>
+        <div class="simple-record ${categoryColorClass(p.category)}">
+          <div class="simple-record-icon ${categoryColorClass(p.category)}">${categoryIcon(p.category)}</div>
           <div class="simple-record-main">
             <a href="part.html?id=${p.id}"><b>${esc2(p.name)}</b></a>
-            <span>${esc2(p.category || "—")} • ${esc2(p.code || "بدون كود")}</span>
+            <span><span class="badge cat-badge ${categoryColorClass(p.category)}">${esc2(p.category || "—")}</span> • ${esc2(p.code || "بدون كود")}</span>
             <small>📍 ${esc2(p.location || "—")} • شراء ${buy.toFixed(2)} ج • استخدام ${use.toFixed(2)} ج • 📈 ${pct.toFixed(1)}%${bucket === "value" ? ` • قيمة (${valueMode === "use" ? "استخدام" : "تكلفة"}): ${((+p.qty||0)*(+p[valueMode]||0)).toFixed(2)} ج` : ""}</small>
             <small>💰 إجمالي الصنف: ${itemTotal.toFixed(2)} ج • 🔁 استُخدم ${partUsageCount(p.id)} مرة</small>
           </div>
@@ -686,6 +687,7 @@
     if (b === "completed") return orderIsCompleted(r);
     if (b === "parts") return orderIsParts(r);
     if (b === "overdue") return orderIsOverdue(r);
+    if (b === "stale") return typeof requestIsStale === "function" && requestIsStale(r);
     if (b === "open" || b === "unfinished" || b === "needed") return r.status !== "مكتمل" && r.status !== "ملغي" && !r.closed;
     if (b === "new") return r.status === "جديد";
     if (b === "active") return r.status === "جاري التنفيذ";
@@ -876,6 +878,7 @@
       focus === "completed" ? "الأوامر المكتملة" :
       focus === "parts" ? "انتظار قطع الغيار" :
       focus === "overdue" ? "الأوامر المتأخرة" :
+      focus === "stale" ? "الأوامر القديمة (محتاجة تنفيذ)" :
       focus === "unfinished" ? "الأوامر غير المكتملة" :
       focus === "needed" ? "المطلوب الآن" :
       focus === "new" ? "الأوامر الجديدة" :
@@ -895,7 +898,7 @@
         <div class="request-filter-grid">
           ${selectHtml("requestOpsFocus",[
             {v:"",t:"كل الأوامر"},{v:"needed",t:"🎯 المطلوب الآن"},{v:"completed",t:"✅ مكتمل"},
-            {v:"overdue",t:"⚠️ متأخر"},{v:"parts",t:"📦 انتظار قطع"},
+            {v:"overdue",t:"⚠️ متأخر"},{v:"stale",t:"🔴 قديم (لسه واقف)"},{v:"parts",t:"📦 انتظار قطع"},
             {v:"today",t:"📅 اليوم"},{v:"unpaid",t:"🧾 غير محصل"}
           ],focus,"التركيز")}
           ${selectHtml("requestOpsStatus",[
@@ -910,20 +913,22 @@
           ],sort,"الترتيب")}
         </div>
       </div>
+      ${requestAgeLegendHtml()}
       ${filtered.length ? filtered.map(r => {
         const loc = locationForOrder(r);
         const status = r.closed ? "مغلق" : (r.status || "—");
-        const age = !orderIsCompleted(r) && r.status!=="ملغي" ? formatDuration(requestAgeMs(r)) : "";
+        const ageInfo = requestAgeInfo(r);
+        const age = ageInfo ? ageInfo.label : "";
         const totalMs=requestTotalCompletionMs(r);
         const workshopMs=requestWorkshopExecutionMs(r);
-        return `<div class="simple-record">
+        return `<div class="simple-record${ageInfo ? " " + ageInfo.cls : ""}">
           <div class="simple-record-icon">${r.closed ? "🔒" : "🛠️"}</div>
           <div class="simple-record-main">
             <a href="request.html?id=${r.id}"><b>${esc2(r.no || "أمر شغل")}</b></a>
             <span>${esc2(customerName(r.customerId))} • ${esc2(deviceName(r.deviceId))}</span>
             <small>📍 ${esc2(loc.center)}${loc.village ? " • " + esc2(loc.village) : ""} • ${r.visit ? new Date(r.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "بدون موعد"}${r.tag ? " • 🏷️ " + esc2(r.tag) : ""}</small>
             <div class="request-timing">
-              ${age ? `<span class="request-age">⏳ عمر الأمر: ${esc2(age)}</span>` : ""}
+              ${ageInfo ? `<span class="request-age age-badge ${ageInfo.cls}" title="⏱️ عمر الأمر: ${esc2(ageInfo.range)}">${ageInfo.dot} عمر الأمر: ${esc2(age)}</span>` : ""}
               ${totalMs!==null ? `<span>⏱️ الإكمال: ${esc2(formatDuration(totalMs))}</span>` : ""}
               ${r.executionPlace==="الورشة" && workshopMs!==null ? `<span>🏭 تنفيذ الورشة: ${esc2(formatDuration(workshopMs))}</span>` : ""}
             </div>

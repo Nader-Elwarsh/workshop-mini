@@ -11,10 +11,6 @@ function updateBulkOpUI(){
   document.getElementById("bulkValueWrap")?.classList.toggle("hidden",isMargin);
   document.getElementById("bulkMarginWrap")?.classList.toggle("hidden",!isMargin);
 }
-function bulkPriceTargets(){
-  const scope=document.getElementById("bulkScope")?.value||"";
-  return arr(K.p).filter(p=>!p.archived&&(!scope||p.category===scope));
-}
 function applyBulkPriceChange(){
   const scope=document.getElementById("bulkScope")?.value||"";
   const op=document.getElementById("bulkOp")?.value||"adjust";
