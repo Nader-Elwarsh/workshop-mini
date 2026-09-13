@@ -927,6 +927,7 @@
             <a href="request.html?id=${r.id}"><b>${esc2(r.no || "أمر شغل")}</b></a>
             <span>${esc2(customerName(r.customerId))} • ${esc2(deviceName(r.deviceId))}</span>
             <small>📍 ${esc2(loc.center)}${loc.village ? " • " + esc2(loc.village) : ""} • ${r.visit ? new Date(r.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "بدون موعد"}${r.tag ? " • 🏷️ " + esc2(r.tag) : ""}</small>
+            ${workshopBadge(r)}
             <div class="request-timing">
               ${ageInfo ? `<span class="request-age age-badge ${ageInfo.cls}" title="⏱️ عمر الأمر: ${esc2(ageInfo.range)}">${ageInfo.dot} عمر الأمر: ${esc2(age)}</span>` : ""}
               ${totalMs!==null ? `<span>⏱️ الإكمال: ${esc2(formatDuration(totalMs))}</span>` : ""}
